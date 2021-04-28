@@ -1,0 +1,23 @@
+header {
+    border: 1px solid grey;
+    background: white;
+    padding: 5px;
+    margin: 5px 5px 0px 5px;
+}
+.container {
+    border: 1px solid grey;
+    display: flex;
+    margin: 0px 5px 5px 5px;
+    padding: 0px;
+    height: 500px;
+}
+.canvas {
+    flex-grow: 1;
+    padding: 0px;
+    margin: 0px;
+}
+.drawables {
+    width: 100px;
+    border-left: 1px solid grey;
+    padding: 5px;
+}
