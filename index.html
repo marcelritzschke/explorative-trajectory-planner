@@ -6,19 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explorative Trajectory Planner</title>
     <link rel="stylesheet" href="style.css">
+    <script src="bower_components/fabric.js/dist/fabric.js"></script>
     <script src="canvasView.js"></script>
 </head>
-<body>
+<body onload="initializeView()">
     <header>
-        <button onclick="drawDiagonal()">Draw</button>
-        <button onclick="clearCanvas()">Clear</button>
+        Settables here
     </header>
     <section class="container">
-        <canvas id="mainView" class="canvas">
-        </canvas>
-        <div class="drawables">
-            Drawables
-        </div>
+        <canvas id="mainView" class="canvas"></canvas>
     </section>
     <footer>Put physical information like speed</footer>
 </body>
