@@ -7,10 +7,13 @@
     <title>Explorative Trajectory Planner</title>
     <link rel="stylesheet" href="style.css">
     <script src="bower_components/fabric.js/dist/fabric.js"></script>
-    <script src="canvasView.js"></script>
+    <script src="view.js"></script>
+    <script src="model.js"></script>
+    <script src="controller.js"></script>
 </head>
-<body onload="initializeView()">
+<body onload="initializeView(); initializeModel(); initializeController()">
     <header>
+        <button onclick="controller.connect()">Connect</button>
         Settables here
     </header>
     <section class="container">
