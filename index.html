@@ -7,6 +7,9 @@
     <title>Explorative Trajectory Planner</title>
     <link rel="stylesheet" href="style.css">
     <script src="bower_components/fabric.js/dist/fabric.js"></script>
+    <script src="state.js"></script>
+    <script src="statecalculator.js"></script>
+    <script src="explorer.js"></script>
     <script src="view.js"></script>
     <script src="model.js"></script>
     <script src="controller.js"></script>
@@ -14,6 +17,7 @@
 <body onload="initializeView(); initializeModel(); initializeController()">
     <header>
         <button onclick="controller.connect()">Connect</button>
+        <button onclick="controller.step()">Step</button>
         Settables here
     </header>
     <section class="container">

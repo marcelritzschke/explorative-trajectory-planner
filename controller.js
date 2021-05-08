@@ -6,6 +6,10 @@ class Controller {
     connect() {
         this._model.connectToGoalEuclidian();
     }
+
+    step() {
+        this._model.explore();
+    }
 }
 
 function initializeController() {

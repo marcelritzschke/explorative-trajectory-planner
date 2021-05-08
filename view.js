@@ -20,6 +20,21 @@ class View {
         });
     }
 
+  drawTrajectory(trajectory) {
+    trajectory.forEach((state) => {
+      var circle = new fabric.Circle({
+        top : state.y * 100 + this._shapes.get('Ego').top,
+        left : state.x * 100 + this._shapes.get('Ego').left,
+        radius : 1,
+        fill : 'black',
+        originX : 'center',
+        originY : 'center'
+      });
+
+      this._canvas.add(circle);
+    })
+  }
+
     getGoalPosition() {
         var goal = this._shapes.get('Goal');
         return [goal.left, goal.top];
@@ -43,9 +58,9 @@ class View {
 
     _constructGoal() {
         var circle = new fabric.Circle({
-            top : 80 + 15,
-            left : this._width - 25,
-            radius : 15,
+            top : this._height/ 2,
+            left : this._width - 100,
+            radius : 10,
             fill : 'blue',
             originX : 'center',
             originY : 'center'
@@ -75,8 +90,9 @@ class View {
         });
 
         var group = new fabric.Group([ triangle, rect ], {
-            left : this._width - 25,
-            top : 10 + 25,
+            left : 100,
+            top : this._height/ 2,
+            angle : 90,
             originX : 'center',
             originY : 'center'
         });
