@@ -33,12 +33,11 @@ class View {
     this._canvas.clear();
 
     this._shapes.forEach(item => {
-      console.log(item.object);
       this._canvas.add(item.object);
     });
   }
 
-  drawTrajectory(trajectory) {
+  drawTrajectory(trajectory, color, size) {
     let trajGroup = new fabric.Group([], {
       left : this.getObjectByName('Ego').left,
       top : this.getObjectByName('Ego').top,
@@ -51,8 +50,10 @@ class View {
       let circle = new fabric.Circle({
         top : this.getObjectByName('Ego').top + state.y * 100,
         left : this.getObjectByName('Ego').left + state.x * 100,
-        radius : 1,
-        fill : 'black'
+        radius : size,
+        fill : color,
+        originX : 'center',
+        originY : 'center',
       });
 
       trajGroup.addWithUpdate(circle);
@@ -71,11 +72,13 @@ class View {
     return [ego.left, ego.top];
   }
 
-  drawLine(startX, startY, endX, endY) {
+  drawLine(startX, startY, endX, endY, color) {
     let line = new fabric.Line([startX, startY, endX, endY], {
-      stroke : 'black',
+      stroke : color,
       selectable : false,
-      evented : false
+      evented : false,
+      originX : 'center',
+      originY : 'center'
     });
 
     this.updateShape(new Shape('Connection', this.getNextId(), line));
@@ -127,7 +130,7 @@ class View {
 
   _objectAddedListener(ev) {
     let target = ev.target;
-    console.log('left', target.left, 'top', target.top, 'width', target.width, 'height', target.height);
+    //console.log('left', target.left, 'top', target.top, 'width', target.width, 'height', target.height);
   }
 
   _createGrid() {
