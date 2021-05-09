@@ -2,34 +2,16 @@ class Model {
   constructor(view) {
     this._view = view;
     this._explorer = new Explorer();
+    this._layerTotalNumber = 3;
+    this._currentLayer = 0;
   }
 
   explore() {
-    let layer = this._explorer.explore();
-    
-    if(layer !== null) {
+    if(this._currentLayer <= this._layerTotalNumber) {
+      let layer = this._explorer.iterateLayer(this._currentLayer++);
       layer.forEach(trajectory => {
         this._view.drawTrajectory(trajectory, 'black', 1);
       })
-    }
-    else {
-      //prototype
-      let trajectory = [];
-      let state = new State();
-      for(let i=0; i<31; ++i) {
-        let newState = Object.assign({}, state);
-        state.x += 0.2;
-        trajectory.push(newState);
-      }
-      this._view.drawTrajectory(trajectory, 'green', 3);
-      this._view.drawLine(this._view.getEgoPosition()[0]
-      , this._view.getEgoPosition()[1]
-      , this._view.getEgoPosition()[0] + 600
-      , this._view.getEgoPosition()[1]
-      , 'green'
-      )
-
-      //prototype
     }
   }
 

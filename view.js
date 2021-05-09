@@ -46,7 +46,7 @@ class View {
       evented : false
     });
 
-    trajectory.forEach((state) => {
+    trajectory.states.forEach((state) => {
       let circle = new fabric.Circle({
         top : this.getObjectByName('Ego').top + state.y * 100,
         left : this.getObjectByName('Ego').left + state.x * 100,
