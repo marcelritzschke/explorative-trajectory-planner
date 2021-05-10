@@ -3,6 +3,7 @@ class View {
     this._canvas = canvas;
     this._width = canvas.width;
     this._height = canvas.height;
+    this._scale = 100;
     this._shapes = [];
     this._fixedShapes = ['Grid', 'Ego', 'Goal'];
 
@@ -48,8 +49,8 @@ class View {
 
     trajectory.states.forEach((state) => {
       let circle = new fabric.Circle({
-        top : this.getObjectByName('Ego').top + state.y * 100,
-        left : this.getObjectByName('Ego').left + state.x * 100,
+        top : this.getObjectByName('Ego').top + state.y * this._scale,
+        left : this.getObjectByName('Ego').left + state.x * this._scale,
         radius : size,
         fill : color,
         originX : 'center',
@@ -64,12 +65,12 @@ class View {
 
   getGoalPosition() {
     let goal = this.getObjectByName('Goal');
-    return [goal.left, goal.top];
+    return [goal.left/ this._scale, goal.top/ this._scale];
   }
 
   getEgoPosition() {
     let ego = this.getObjectByName('Ego');
-    return [ego.left, ego.top];
+    return [ego.left/ this._scale, ego.top/ this._scale];
   }
 
   drawLine(startX, startY, endX, endY, color) {
@@ -204,6 +205,7 @@ class View {
     console.log('left', target.left, 'top', target.top, 'width', target.width * target.scaleX, 'height', target.height * target.scaleY);
     if(target == view.getObjectByName('Ego') || target == view.getObjectByName('Goal')) {
       view.reset();
+      model.reset();
     }
   }
 }
