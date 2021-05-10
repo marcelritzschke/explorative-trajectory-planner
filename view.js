@@ -49,11 +49,15 @@ class View {
       evented: false,
     });
 
-    trajectory.states.forEach((state, index, self) => {
+    trajectory.getDeepCopy().states.forEach((state, index, self) => {
       if (!state.isColliding) {
+        self[index].x *= this._scale;
+        self[index].y *= this._scale;
+        self[index] = this.getStateInGlobalSystem(state);
+
         const circle = new fabric.Circle({
-          top: this.getObjectByName('Ego').top + state.y * this._scale,
-          left: this.getObjectByName('Ego').left + state.x * this._scale,
+          top: state.y,
+          left: state.x,
           radius: size,
           fill: color,
           originX: 'center',
@@ -61,18 +65,18 @@ class View {
         });
         trajGroup.addWithUpdate(circle);
 
-        if (type === 'dotted-line' && index !== 0) {
-          const line = new fabric.Line([
-            self[index-1].x * this._scale + this.getObjectByName('Ego').left,
-            self[index-1].y * this._scale + this.getObjectByName('Ego').top,
-            state.x * this._scale + this.getObjectByName('Ego').left,
-            state.y * this._scale + this.getObjectByName('Ego').top], {
-            stroke: color,
-            originX: 'center',
-            originY: 'center',
-          });
-          trajGroup.addWithUpdate(line);
-        }
+        // if (type === 'dotted-line' && index !== 0) {
+        //   const line = new fabric.Line([
+        //     self[index-1].x * this._scale + this.getObjectByName('Ego').left,
+        //     self[index-1].y * this._scale + this.getObjectByName('Ego').top,
+        //     state.x * this._scale + this.getObjectByName('Ego').left,
+        //     state.y * this._scale + this.getObjectByName('Ego').top], {
+        //     stroke: color,
+        //     originX: 'center',
+        //     originY: 'center',
+        //   });
+        //   trajGroup.addWithUpdate(line);
+        // }
       }
     });
 
@@ -80,20 +84,33 @@ class View {
   }
 
   getGoalPosition() {
-    const goal = this.getObjectByName('Goal');
-    return [goal.left/ this._scale, goal.top/ this._scale];
+    const goal = this.getObjectPositionInUsk(this.getObjectByName('Goal'));
+    return [
+      goal[0]/ this._scale,
+      goal[1]/ this._scale,
+      goal[2],
+    ];
   }
 
   getEgoPosition() {
-    const ego = this.getObjectByName('Ego');
-    return [ego.left/ this._scale, ego.top/ this._scale];
+    const ego = this.getObjectPositionInUsk(this.getObjectByName('Ego'));
+    return [
+      ego[0]/ this._scale,
+      ego[1]/ this._scale,
+      ego[2],
+    ];
   }
 
   getObstacle() {
-    return new Obstacle(this.getObjectByName('Obstacle').left/ this._scale,
-        this.getObjectByName('Obstacle').top/ this._scale,
+    const obstacle = this.getObjectPositionInUsk(
+        this.getObjectByName('Obstacle'));
+    return new Obstacle(
+        obstacle[0]/ this._scale,
+        obstacle[1]/ this._scale,
+        obstacle[2],
         this.getObjectByName('Obstacle').width/ this._scale,
-        this.getObjectByName('Obstacle').height/ this._scale);
+        this.getObjectByName('Obstacle').height/ this._scale,
+    );
   }
 
   drawLine(startX, startY, endX, endY, color) {
@@ -236,16 +253,54 @@ class View {
     return this.getLastId() + 1;
   }
 
+  getObjectPositionInUsk(object) {
+    const x = object.left;
+    const y = object.top;
+    const ego = this.getObjectByName('Ego');
+    const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
+
+    let newX = x - ego.left;
+    let newY = y - ego.top;
+
+    const buf = newX;
+    newX = Math.cos(theta) * newX - Math.sin(theta) * newY;
+    newY = Math.sin(theta) * buf + Math.cos(theta) * newY;
+
+    return [newX, newY, (object.angle - ego.angle) * Math.PI / 180];
+  }
+
+  getStateInGlobalSystem(state) {
+    const x = state.x;
+    const y = state.y;
+    const ego = this.getObjectByName('Ego');
+    const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
+
+    const buf = x;
+    let newX = Math.cos(theta) * buf - Math.sin(theta) * y;
+    let newY = Math.sin(theta) * buf + Math.cos(theta) * y;
+
+    newX += ego.left;
+    newY += ego.top;
+
+    state.x = newX;
+    state.y = newY;
+    state.theta = (ego.angle - state.theta / Math.PI * 180);
+
+    return state;
+  }
+
   objectMovedListener(ev) {
     const target = ev.target;
     console.log('left', target.left, 'top', target.top, 'width',
-        target.width * target.scaleX, 'height', target.height * target.scaleY);
+        target.width * target.scaleX, 'height', target.height * target.scaleY,
+        'orientation', target.angle);
     if (target == view.getObjectByName('Ego') ||
       target == view.getObjectByName('Goal') ||
       target == view.getObjectByName('Obstacle')) {
       view.reset();
       model.reset();
     }
+    view.getObjectPositionInUsk(target);
   }
 }
 

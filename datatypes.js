@@ -28,15 +28,27 @@ class Trajectory {
   get lastState() {
     return this.states[this.states.length-1];
   };
+
+  getDeepCopy() {
+    const copy = new Trajectory();
+    copy.prevIdx = this.prevIdx;
+    copy.cost = this.cost;
+    this.states.forEach((state) => {
+      const cpy = Object.assign({}, state);
+      copy.states.push(cpy);
+    });
+    return copy;
+  }
 }
 
 // eslint-disable-next-line no-unused-vars
 class Obstacle {
-  constructor(x, y, width, height) {
+  constructor(x, y, angle, width, height) {
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
+    this.angle = angle;
   }
 
   isColliding(state) {
