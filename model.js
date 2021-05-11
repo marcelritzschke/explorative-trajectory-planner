@@ -1,7 +1,7 @@
 class Model {
   constructor(view) {
     this._view = view;
-    this._layerTotalNumber = 2;
+    this._layerTotalNumber = 3;
     this.reset();
   }
 

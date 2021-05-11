@@ -96,7 +96,7 @@ class Explorer {
     }
 
     // Remove initial state since it is already in previous segment
-    states.splice(0, 1);
+    // states.splice(0, 1);
 
     return states;
   }

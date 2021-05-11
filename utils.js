@@ -1,5 +1,40 @@
 // eslint-disable-next-line no-unused-vars
 const Utils = {
+  getObjectPositionInUsk(ego, object) {
+    const x = object.left;
+    const y = object.top;
+    const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
+
+    let newX = x - ego.left;
+    let newY = y - ego.top;
+    newY *= -1;
+
+    const buf = newX;
+    newX = Math.cos(theta) * newX - Math.sin(theta) * newY;
+    newY = Math.sin(theta) * buf + Math.cos(theta) * newY;
+
+    return [newX, newY, (object.angle - ego.angle) * Math.PI / 180];
+  },
+
+  getStateInGlobalSystem(ego, state) {
+    const x = state.x;
+    const y = -state.y;
+    const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
+
+    const buf = x;
+    let newX = Math.cos(theta) * buf - Math.sin(theta) * y;
+    let newY = Math.sin(theta) * buf + Math.cos(theta) * y;
+
+    newX += ego.left;
+    newY += ego.top;
+
+    state.x = newX;
+    state.y = newY;
+    state.theta = (ego.angle - state.theta / Math.PI * 180);
+
+    return state;
+  },
+
   fillRectangleWithDiagonals: function(rect, gap = 10) {
     const group = new fabric.Group([rect], {
       left: rect.left,

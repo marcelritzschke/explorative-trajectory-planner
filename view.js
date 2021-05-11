@@ -53,7 +53,8 @@ class View {
       if (!state.isColliding) {
         self[index].x *= this._scale;
         self[index].y *= this._scale;
-        self[index] = this.getStateInGlobalSystem(state);
+        self[index] = Utils.getStateInGlobalSystem(this.getObjectByName('Ego'),
+            state);
 
         const circle = new fabric.Circle({
           top: state.y,
@@ -82,7 +83,8 @@ class View {
   }
 
   getGoalPosition() {
-    const goal = this.getObjectPositionInUsk(this.getObjectByName('Goal'));
+    const goal = Utils.getObjectPositionInUsk(this.getObjectByName('Ego'),
+        this.getObjectByName('Goal'));
     return [
       goal[0]/ this._scale,
       goal[1]/ this._scale,
@@ -91,7 +93,8 @@ class View {
   }
 
   getEgoPosition() {
-    const ego = this.getObjectPositionInUsk(this.getObjectByName('Ego'));
+    const ego = Utils.getObjectPositionInUsk(this.getObjectByName('Ego'),
+        this.getObjectByName('Ego'));
     return [
       ego[0]/ this._scale,
       ego[1]/ this._scale,
@@ -100,7 +103,7 @@ class View {
   }
 
   getObstacle() {
-    const obstacle = this.getObjectPositionInUsk(
+    const obstacle = Utils.getObjectPositionInUsk(this.getObjectByName('Ego'),
         this.getObjectByName('Obstacle'));
     return new Obstacle(
         obstacle[0]/ this._scale,
@@ -127,8 +130,8 @@ class View {
     const rectangle = new fabric.Rect({
       left: this._width/ 2,
       top: this._height/ 2,
-      width: 150,
-      height: 100,
+      width: 100,
+      height: 50,
       angle: 0,
       fill: '',
       originX: 'center',
@@ -269,42 +272,6 @@ class View {
     return this.getLastId() + 1;
   }
 
-  getObjectPositionInUsk(object) {
-    const x = object.left;
-    const y = object.top;
-    const ego = this.getObjectByName('Ego');
-    const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
-
-    let newX = x - ego.left;
-    let newY = y - ego.top;
-
-    const buf = newX;
-    newX = Math.cos(theta) * newX - Math.sin(theta) * newY;
-    newY = Math.sin(theta) * buf + Math.cos(theta) * newY;
-
-    return [newX, newY, (object.angle - ego.angle) * Math.PI / 180];
-  }
-
-  getStateInGlobalSystem(state) {
-    const x = state.x;
-    const y = state.y;
-    const ego = this.getObjectByName('Ego');
-    const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
-
-    const buf = x;
-    let newX = Math.cos(theta) * buf - Math.sin(theta) * y;
-    let newY = Math.sin(theta) * buf + Math.cos(theta) * y;
-
-    newX += ego.left;
-    newY += ego.top;
-
-    state.x = newX;
-    state.y = newY;
-    state.theta = (ego.angle - state.theta / Math.PI * 180);
-
-    return state;
-  }
-
   objectMovedListener(ev) {
     const target = ev.target;
     console.log('left', target.left, 'top', target.top, 'width',
@@ -316,7 +283,6 @@ class View {
       view.reset();
       model.reset();
     }
-    view.getObjectPositionInUsk(target);
   }
 }
 
