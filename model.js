@@ -1,7 +1,6 @@
 class Model {
   constructor(view) {
     this._view = view;
-    this._layerTotalNumber = 3;
     this.reset();
   }
 
@@ -14,26 +13,25 @@ class Model {
       this._view.getGoalPosition()[0] - this._view.getEgoPosition()[0],
       this._view.getGoalPosition()[1] - this._view.getEgoPosition()[1],
     ], obstacle);
-    this._currentLayer = 0;
   }
 
-  explore() {
-    if (this._currentLayer < this._layerTotalNumber) {
-      const layer = this._explorer.iterateLayer(this._currentLayer++);
-      layer.forEach((trajectory) => {
-        if (trajectory.isColliding) {
-          this._view.drawTrajectory(trajectory, 'red', 1);
-        } else {
-          this._view.drawTrajectory(trajectory, 'black', 1);
-        }
-      });
-    } else {
-      this._explorer.addCostDistanceToGoal();
-      this._explorer.calculateBestTrajectory();
-      this._explorer.getBestTrajectory().forEach((segment) => {
-        this._view.drawTrajectory(segment, 'green', 3, 'dotted-line');
-      });
-    }
+  calculateFinalTrajectory() {
+    this._explorer.addCostDistanceToGoal();
+    this._explorer.calculateBestTrajectory();
+    this._explorer.getBestTrajectory().forEach((segment) => {
+      this._view.drawTrajectory(segment, 'green', 3, 'dotted-line');
+    });
+  }
+
+  explore(layerNumber) {
+    const layer = this._explorer.iterateLayer(layerNumber);
+    layer.forEach((trajectory) => {
+      if (trajectory.isColliding) {
+        this._view.drawTrajectory(trajectory, 'red', 1);
+      } else {
+        this._view.drawTrajectory(trajectory, 'black', 1);
+      }
+    });
   }
 }
 

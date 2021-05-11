@@ -164,7 +164,7 @@ class View {
 
     const group = new fabric.Group([circle, dot], {
       top: this._height/ 2,
-      left: this._width - 100,
+      left: this._width - 300,
       angle: 90,
       originX: 'center',
       originY: 'center',
@@ -195,8 +195,8 @@ class View {
     });
 
     const group = new fabric.Group([triangle, car], {
-      left: 100,
-      top: this._height/ 2,
+      left: 250,
+      top: this._height/ 2 - 10,
       angle: 90,
       originX: 'center',
       originY: 'center',
@@ -282,7 +282,7 @@ class View {
       target == view.getObjectByName('Goal') ||
       target == view.getObjectByName('Obstacle')) {
       view.reset();
-      model.reset();
+      controller.reset();
     }
   }
 }

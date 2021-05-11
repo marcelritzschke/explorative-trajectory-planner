@@ -16,7 +16,12 @@
 </head>
 <body onload="initializeView(); initializeModel(); initializeController()">
     <header>
-        <button onclick="controller.step()">Step</button>
+        <div class="control-section">
+            <div onclick="controller.reset(), view.reset()" class="reset-button"></div>
+            <div onclick="controller.pause()" class="pause-button"></div>
+            <div onclick="controller.play()" class="play-button"></div>
+            <div onclick="controller.step()" class="step-button"></div>
+        </div>
     </header>
     <section class="container">
         <canvas id="mainView" class="canvas"></canvas>

@@ -6,10 +6,10 @@ html, body {
 }
 header {
     border-bottom: 1px solid grey;
-    background: white;
+    background: rgb(255, 255, 255);
     padding: 1px;
     margin: 0px;
-    height: 5%;
+    height: 50px;
 }
 .container {
     border: 0px solid grey;
@@ -23,6 +23,97 @@ header {
     padding: 0px;
     margin: 0px;
 }
-button {
-    background-color: white;
+.control-section {
+    width: 100%;
+}
+.pause-button {
+    float: right;
+    content: "";
+    box-sizing: border-box;
+    width: 20px;
+    height: 26px;
+    position: relative;
+    top: 10px;
+    right: 15px;
+    border-style: solid;
+    border-width: 0px 8px 0px 8px;
+    border-color: #202020;
+    transform: scale(.8);
+    transition: 50ms all ease;
+}
+.pause-button:hover {
+    cursor: pointer;
+    border-color: #707070;
+    transform: scale(.75);
+}
+.play-button {
+    float: right;
+    content: "";
+    box-sizing: border-box;
+    width: 26px;
+    height: 26px;
+    position: relative;
+    right: 18px;
+    top: 10px;
+    border-style: solid;
+    border-width: 13px 0px 13px 26px;
+    border-color: transparent transparent transparent #202020;
+    transform: scale(.75);
+    transition: 50ms all ease;
+}
+.play-button:hover {
+    cursor: pointer;
+    border-color: transparent transparent transparent #707070;
+    transform: scale(.7);
+}
+.step-button {
+    float: right;
+    content: "";
+    box-sizing: border-box;
+    width: 8px;
+    height: 26px;
+    position: relative;
+    right: 25px;
+    top: 10px;
+    background: #202020;
+    transform: scale(.75);
+    transition: 50ms all ease;
+}
+.step-button::before {
+    float: right;
+    content: "";
+    box-sizing: border-box;
+    position: absolute;
+    right: 0px;
+    width: 26px;
+    height: 26px;
+    border-style: solid;
+    border-width: 13px 0px 13px 26px;
+    border-color: transparent transparent transparent #202020;
+}
+.step-button:hover {
+    cursor: pointer;
+    background: #707070;
+    transform: scale(.7);
+}
+.step-button:hover::before {
+    border-color: transparent transparent transparent #707070;
+}
+.reset-button {
+    float: right;
+    content: "";
+    box-sizing: border-box;
+    width: 26px;
+    height: 26px;
+    position: relative;
+    top: 10px;
+    right: 10px;
+    background: #202020;
+    transform: scale(.8);
+    transition: 50ms all ease;
+}
+.reset-button:hover {
+    cursor: pointer;
+    background: #707070;
+    transform: scale(.75);
 }
