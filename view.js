@@ -65,18 +65,16 @@ class View {
         });
         trajGroup.addWithUpdate(circle);
 
-        // if (type === 'dotted-line' && index !== 0) {
-        //   const line = new fabric.Line([
-        //     self[index-1].x * this._scale + this.getObjectByName('Ego').left,
-        //     self[index-1].y * this._scale + this.getObjectByName('Ego').top,
-        //     state.x * this._scale + this.getObjectByName('Ego').left,
-        //     state.y * this._scale + this.getObjectByName('Ego').top], {
-        //     stroke: color,
-        //     originX: 'center',
-        //     originY: 'center',
-        //   });
-        //   trajGroup.addWithUpdate(line);
-        // }
+        if (type === 'dotted-line' && index !== 0) {
+          const line = new fabric.Line([
+            self[index-1].x, self[index-1].y,
+            state.x, state.y], {
+            stroke: color,
+            originX: 'center',
+            originY: 'center',
+          });
+          trajGroup.addWithUpdate(line);
+        }
       }
     });
 
@@ -126,32 +124,49 @@ class View {
   }
 
   _constructObstacle() {
-    const rect = new fabric.Rect({
-      top: this._height/ 2 - 50,
+    const rectangle = new fabric.Rect({
       left: this._width/ 2,
-      width: 100,
-      height: 50,
+      top: this._height/ 2,
+      width: 150,
+      height: 100,
       angle: 0,
-      fill: 'red',
+      fill: '',
       originX: 'center',
       originY: 'center',
-      opacity: .5,
+      stroke: 'black',
+      strokeWidth: 2,
     });
 
-    this.addShape(new Shape('Obstacle', this.getNextId(), rect));
+    const filledRect = Utils.fillRectangleWithDiagonals(rectangle);
+    this.addShape(new Shape('Obstacle', this.getNextId(), filledRect));
   }
 
   _constructGoal() {
     const circle = new fabric.Circle({
-      top: this._height/ 2,
-      left: this._width - 100,
       radius: 10,
+      fill: '',
+      stroke: 'blue',
+      strokeWidth: 2,
+      originX: 'center',
+      originY: 'center',
+    });
+
+    const dot = new fabric.Circle({
+      radius: 2,
       fill: 'blue',
       originX: 'center',
       originY: 'center',
     });
 
-    this.addShape(new Shape('Goal', this.getNextId(), circle));
+    const group = new fabric.Group([circle, dot], {
+      top: this._height/ 2,
+      left: this._width - 100,
+      angle: 90,
+      originX: 'center',
+      originY: 'center',
+    });
+
+    this.addShape(new Shape('Goal', this.getNextId(), group));
   };
 
   _constructEgoShape() {
@@ -165,16 +180,17 @@ class View {
       top: 10,
     });
 
-    const rect = new fabric.Rect({
+    const car = new fabric.Rect({
       width: 30,
       height: 50,
       fill: 'rgba(0,0,0,0)',
       stroke: 'green',
+      strokeWidth: 2,
       originX: 'center',
       originY: 'center',
     });
 
-    const group = new fabric.Group([triangle, rect], {
+    const group = new fabric.Group([triangle, car], {
       left: 100,
       top: this._height/ 2,
       angle: 90,

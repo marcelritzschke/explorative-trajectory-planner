@@ -7,8 +7,8 @@ html, body {
 header {
     border-bottom: 1px solid grey;
     background: white;
-    padding: 0px;
-    margin-top: 2px;
+    padding: 1px;
+    margin: 0px;
     height: 5%;
 }
 .container {
@@ -22,4 +22,7 @@ header {
     height: 100%;
     padding: 0px;
     margin: 0px;
+}
+button {
+    background-color: white;
 }

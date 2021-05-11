@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="bower_components/fabric.js/dist/fabric.js"></script>
     <script src="datatypes.js"></script>
+    <script src="utils.js"></script>
     <script src="explorer.js"></script>
     <script src="view.js"></script>
     <script src="model.js"></script>
@@ -15,7 +16,6 @@
 </head>
 <body onload="initializeView(); initializeModel(); initializeController()">
     <header>
-        <button onclick="controller.connect()">Connect</button>
         <button onclick="controller.step()">Step</button>
     </header>
     <section class="container">

@@ -3,10 +3,6 @@ class Controller {
     this._model = model;
   }
 
-  connect() {
-    this._model.connectToGoalEuclidian();
-  }
-
   step() {
     this._model.explore();
   }
