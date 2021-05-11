@@ -52,10 +52,13 @@ class Obstacle {
   }
 
   isColliding(state) {
-    if (state.x < this.x + this.width/2 &&
-      state.x > this.x - this.width/2 &&
-      state.y < this.y + this.height/2 &&
-      state.y > this.y - this.height/2
+    const mid = Utils.rotatePoint(this.x, this.y, this.angle);
+    const point = Utils.rotatePoint(state.x, state.y, this.angle);
+
+    if (point[0] < mid[0] + this.height/2 &&
+      point[0] > mid[0] - this.height/2 &&
+      point[1] < mid[1] + this.width/2 &&
+      point[1] > mid[1] - this.width/2
     ) {
       return true;
     } else {
@@ -65,8 +68,10 @@ class Obstacle {
 }
 
 // eslint-disable-next-line no-unused-vars
-function Shape(name, id, object) {
-  this.name = name;
-  this.id = id;
-  this.object = object;
+class Shape {
+  constructor(name, id, object) {
+    this.name = name;
+    this.id = id;
+    this.object = object;
+  }
 }

@@ -9,9 +9,9 @@ const Utils = {
     let newY = y - ego.top;
     newY *= -1;
 
-    const buf = newX;
-    newX = Math.cos(theta) * newX - Math.sin(theta) * newY;
-    newY = Math.sin(theta) * buf + Math.cos(theta) * newY;
+    const res = this.rotatePoint(newX, newY, theta);
+    newX = res[0];
+    newY = res[1];
 
     return [newX, newY, (object.angle - ego.angle) * Math.PI / 180];
   },
@@ -21,9 +21,9 @@ const Utils = {
     const y = -state.y;
     const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
 
-    const buf = x;
-    let newX = Math.cos(theta) * buf - Math.sin(theta) * y;
-    let newY = Math.sin(theta) * buf + Math.cos(theta) * y;
+    const res = this.rotatePoint(x, y, theta);
+    let newX = res[0];
+    let newY = res[1];
 
     newX += ego.left;
     newY += ego.top;
@@ -35,7 +35,15 @@ const Utils = {
     return state;
   },
 
-  fillRectangleWithDiagonals: function(rect, gap = 10) {
+  rotatePoint(x, y, angle) {
+    const buf = x;
+    const newX = Math.cos(angle) * buf - Math.sin(angle) * y;
+    const newY = Math.sin(angle) * buf + Math.cos(angle) * y;
+
+    return [newX, newY];
+  },
+
+  fillRectangleWithDiagonals(rect, gap = 10) {
     const group = new fabric.Group([rect], {
       left: rect.left,
       top: rect.top,

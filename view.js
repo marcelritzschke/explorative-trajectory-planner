@@ -105,6 +105,7 @@ class View {
   getObstacle() {
     const obstacle = Utils.getObjectPositionInUsk(this.getObjectByName('Ego'),
         this.getObjectByName('Obstacle'));
+    console.log(obstacle[0], obstacle[1], obstacle[2]);
     return new Obstacle(
         obstacle[0]/ this._scale,
         obstacle[1]/ this._scale,
