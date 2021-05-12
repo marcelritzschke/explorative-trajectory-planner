@@ -25,7 +25,7 @@ class Planner {
     this._lastTrajectory.origin = this._view.getEgoPosition();
     this._lastTrajectory.time = timer;
     this._lastTrajectory.forEach((segment) => {
-      this._view.drawTrajectory(segment, 'green', 3, 'dotted-line');
+      this._view.drawTrajectory(segment, 'rgb(3,90,32)', 3, 'dotted-line');
     });
   }
 
