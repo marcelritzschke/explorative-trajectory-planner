@@ -40,6 +40,21 @@ class View {
     });
   }
 
+  updateEgo(origin, state) {
+    const ego = this.getObjectByName('Ego');
+    let newPosition = state;
+    state.x *= this._scale;
+    state.y *= this._scale;
+    newPosition = Utils.getStateInGlobalSystem(
+        Utils.convertToPixels(this._scale, origin), state);
+
+    ego.left = newPosition.x;
+    ego.top = newPosition.y;
+    ego.angle = newPosition.theta;
+
+    this.draw();
+  }
+
   drawTrajectory(trajectory, color, size, type) {
     const trajGroup = new fabric.Group([], {
       left: this.getObjectByName('Ego').left,
@@ -53,8 +68,9 @@ class View {
       if (!state.isColliding) {
         self[index].x *= this._scale;
         self[index].y *= this._scale;
-        self[index] = Utils.getStateInGlobalSystem(this.getObjectByName('Ego'),
-            state);
+        self[index] = Utils.getStateInGlobalSystem(new Pose(
+            this.getObjectByName('Ego').left, this.getObjectByName('Ego').top,
+            this.getObjectByName('Ego').angle), state);
 
         const circle = new fabric.Circle({
           top: state.y,
@@ -93,12 +109,10 @@ class View {
   }
 
   getEgoPosition() {
-    const ego = Utils.getObjectPositionInUsk(this.getObjectByName('Ego'),
-        this.getObjectByName('Ego'));
     return [
-      ego[0]/ this._scale,
-      ego[1]/ this._scale,
-      ego[2],
+      this.getObjectByName('Ego').left/ this._scale,
+      this.getObjectByName('Ego').top/ this._scale,
+      this.getObjectByName('Ego').angle,
     ];
   }
 

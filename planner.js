@@ -1,24 +1,30 @@
-class Model {
+class Planner {
   constructor(view) {
     this._view = view;
     this.reset();
   }
 
-  reset() {
-    const obstacle = this._view.getObstacle();
-    obstacle.x -= this._view.getEgoPosition()[0];
-    obstacle.y -= this._view.getEgoPosition()[1];
-
-    this._explorer = new Explorer([0, 0], [
-      this._view.getGoalPosition()[0] - this._view.getEgoPosition()[0],
-      this._view.getGoalPosition()[1] - this._view.getEgoPosition()[1],
-    ], obstacle);
+  get lastTrajectory() {
+    return this._lastTrajectory;
   }
 
-  calculateFinalTrajectory() {
+  reset() {
+    const obstacle = this._view.getObstacle();
+    this._explorer = new Explorer([0, 0], [
+      this._view.getGoalPosition()[0],
+      this._view.getGoalPosition()[1],
+    ], obstacle);
+
+    this._lastTrajectory = [];
+  }
+
+  calculateFinalTrajectory(timer) {
     this._explorer.addCostDistanceToGoal();
     this._explorer.calculateBestTrajectory();
-    this._explorer.getBestTrajectory().forEach((segment) => {
+    this._lastTrajectory = this._explorer.getBestTrajectory();
+    this._lastTrajectory.origin = this._view.getEgoPosition();
+    this._lastTrajectory.time = timer;
+    this._lastTrajectory.forEach((segment) => {
       this._view.drawTrajectory(segment, 'green', 3, 'dotted-line');
     });
   }
@@ -36,9 +42,9 @@ class Model {
 }
 
 // eslint-disable-next-line no-unused-vars
-function initializeModel() {
-  model = new Model(view);
+function initializePlanner() {
+  planner = new Planner(view);
 }
 
 // eslint-disable-next-line no-unused-vars
-let model;
+let planner;

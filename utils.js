@@ -25,8 +25,8 @@ const Utils = {
     let newX = res[0];
     let newY = res[1];
 
-    newX += ego.left;
-    newY += ego.top;
+    newX += ego.x;
+    newY += ego.y;
 
     state.x = newX;
     state.y = newY;
@@ -96,5 +96,19 @@ const Utils = {
     }
 
     return group;
+  },
+
+  convertToPixels(scale, position) {
+    position.x *= scale;
+    position.y *= scale;
+
+    return position;
+  },
+
+  convertToMetric(scale, position) {
+    position.x /= scale;
+    position.y /= scale;
+
+    return position;
   },
 };

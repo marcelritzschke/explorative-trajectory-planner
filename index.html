@@ -11,16 +11,20 @@
     <script src="utils.js"></script>
     <script src="explorer.js"></script>
     <script src="view.js"></script>
-    <script src="model.js"></script>
+    <script src="planner.js"></script>
+    <script src="motion.js"></script>
     <script src="controller.js"></script>
 </head>
-<body onload="initializeView(); initializeModel(); initializeController()">
+<body onload="initializeView(); initializePlanner(); initializeMotion(); initializeController()">
     <header>
+        <div id="timer" class="timer">
+            00:00:000
+        </div>
         <div class="control-section">
-            <div onclick="controller.reset(), view.reset()" class="reset-button"></div>
-            <div onclick="controller.pause()" class="pause-button"></div>
-            <div onclick="controller.play()" class="play-button"></div>
-            <div onclick="controller.step()" class="step-button"></div>
+            <span onclick="controller.reset(), view.reset()" class="reset-button"></span>
+            <span onclick="controller.pause()" class="pause-button"></span>
+            <span onclick="controller.play()" class="play-button"></span>
+            <span onclick="controller.step()" class="step-button"></span>
         </div>
     </header>
     <section class="container">

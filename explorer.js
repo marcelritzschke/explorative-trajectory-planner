@@ -63,7 +63,7 @@ class Explorer {
     let trajectoryIdx = this._bestTrajectoryIdx;
     while (layerIdx >= 0) {
       const trajectory = this._trajectories[layerIdx][trajectoryIdx];
-      best.push(trajectory);
+      best.unshift(trajectory);
       trajectoryIdx = trajectory.prevIdx;
       layerIdx--;
     }
@@ -91,6 +91,7 @@ class Explorer {
       newState.y += veloctity * this._intertime * Math.sin(states[i].theta);
       newState.theta += 0.1 * theta; // TODO: figure out how this works!
       newState.v = veloctity;
+      newState.t += this._intertime;
       newState.isColliding |= this.isColliding(newState);
       states.push(newState);
     }
@@ -107,6 +108,7 @@ class Explorer {
       const newState = Object.assign({}, states[i]);
       newState.x += veloctity * this._intertime;
       newState.v = veloctity;
+      newState.t += this._intertime;
       newState.isColliding |= this.isColliding(newState);
       states.push(newState);
     }

@@ -1,10 +1,20 @@
 // eslint-disable-next-line no-unused-vars
+class Pose {
+  constructor(x = 0, y = 0, angle = 0) {
+    this.x = x;
+    this.y = y;
+    this.angle = angle;
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
 class State {
   constructor() {
     this.x = 0;
     this.y = 0;
     this.theta = 0;
     this.v = 0;
+    this.t = 0;
     this.isColliding = false;
   }
 }
@@ -15,6 +25,8 @@ class Trajectory {
     this.states = states;
     this.prevIdx = 0;
     this.cost = 0;
+    this.origin = [0, 0, 0];
+    this.time = 0;
 
     if (typeof states === typeof undefined) {
       this.states = [];
