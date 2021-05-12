@@ -163,7 +163,7 @@ class View {
     const circle = new fabric.Circle({
       radius: 10,
       fill: '',
-      stroke: 'blue',
+      stroke: '#1c87c9',
       strokeWidth: 2,
       originX: 'center',
       originY: 'center',
@@ -171,7 +171,7 @@ class View {
 
     const dot = new fabric.Circle({
       radius: 2,
-      fill: 'blue',
+      fill: '#1c87c9',
       originX: 'center',
       originY: 'center',
     });
@@ -192,7 +192,7 @@ class View {
       width: 16,
       height: 16,
       angle: 0,
-      fill: 'green',
+      fill: '#0da733',
       originX: 'center',
       originY: 'center',
       top: 10,
@@ -202,7 +202,7 @@ class View {
       width: 30,
       height: 50,
       fill: 'rgba(0,0,0,0)',
-      stroke: 'green',
+      stroke: '#0da733',
       strokeWidth: 2,
       originX: 'center',
       originY: 'center',

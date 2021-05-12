@@ -10,6 +10,7 @@ class Controller {
     this._baseFrequency_ms = 50;
     this._plannerFrequency_ms = 750;
     this._step = 0;
+    this._running = false;
   }
 
   step() {
@@ -50,6 +51,10 @@ class Controller {
 
     this._timer += this._baseFrequency_ms/ 1000;
     this.updateTimerOnScreen();
+  }
+
+  updateLayerNumber() {
+    this._layerTotalNumber = document.getElementById('layerNumber').value;
   }
 
   updateTimerOnScreen() {

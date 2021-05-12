@@ -17,22 +17,29 @@
 </head>
 <body onload="initializeView(); initializePlanner(); initializeMotion(); initializeController()">
     <header>
-        <section class="timer-section">
-            <span class="settings-description">Settings follow here</span>
-            <span id="timer" class="timer">00:00:000</span>
-        </section>
-        <section class="control-section">
-            <span class="settings-description">Settings follow here</span>
-            <div onclick="controller.reset(), view.reset()" class="reset-button"></div>
-            <span onclick="controller.pause()" class="pause-button"></span>
-            <span onclick="controller.play()" class="play-button"></span>
-            <span onclick="controller.step()" class="step-button"></span>
-        </section>
 
     </header>
+    <section class="settings-description">
+        <span class="">Number of Layers:
+            <select class="dropdown" id="layerNumber" onchange="controller.updateLayerNumber()">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+            </select>
+        </span>
+    </section>
+    <section class="control-section">
+        <div class="control">
+            <div onclick="controller.step()" class="step-button"></div>
+            <div onclick="controller.play()" class="play-button"></div>
+            <div onclick="controller.pause()" class="pause-button"></div>
+            <div onclick="controller.reset(), view.reset()" class="reset-button"></div>
+        </div>
+        <div id="timer" class="timer">00:00:000</div>
+    </section>
     <section class="container">
         <canvas id="mainView" class="canvas"></canvas>
     </section>
-    <footer>Put physical information like speed</footer>
+    <footer></footer>
 </body>
 </html>

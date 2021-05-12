@@ -5,14 +5,29 @@ html, body {
     padding: 0;
 }
 header {
-    border-bottom: 1px solid grey;
-    background: rgb(255, 255, 255);
+    border-bottom: 0px solid grey;
+    background: #f0f0f0;
     padding: 1px;
     margin: 0px;
-    height: 50px;
+    height: 10px;
+}
+.dropdown {
+    width: 50px;
+    border: 1px solid #999;
+    color: #1c87c9;
+    background-color: #eee;
+    border-radius: 2px;
+}
+.settings-description {
+    font-size: small;
+    font-family: 'Helvetica';
+    background: #f0f0f0;
+    padding-bottom: 5px;
+    padding-left: 5px;
 }
 .container {
-    border: 0px solid grey;
+    border-top: 1px solid #9c9c9c;
+    border-radius: 0px;
     margin: 0px;
     padding: 0px;
     height: 100%;
@@ -23,36 +38,36 @@ header {
     padding: 0px;
     margin: 0px;
 }
-.timer-section {
-    height: 22px;
-}
-.control-section {
-    height: 28px;
-}
-.settings-description {
-    color: white;
-}
 .timer {
     float: right;
     position: relative;
-    top: 0px;
-    right: 12px;
+    top: 2px;
+    right: 10px;
     font-size: larger;
     font-weight: bold;
     font-family: 'Helvetica';
 }
 .control-section {
+    height: 30px;
+    text-align: center;
+    margin: 0 auto;
     width: 100%;
 }
+.control {
+    position: relative;
+    top: 0px;
+    left: 50%;
+    transform: translate(-30px);
+}
 .pause-button {
-    float: right;
+    float: left;
     content: "";
     box-sizing: border-box;
     width: 20px;
     height: 26px;
     position: relative;
     top: 0px;
-    right: 9px;
+    left: 0px;
     border-style: solid;
     border-width: 0px 8px 0px 8px;
     border-color: #202020;
@@ -65,13 +80,13 @@ header {
     transform: scale(.65);
 }
 .play-button {
-    float: right;
+    float: left;
     content: "";
     box-sizing: border-box;
     width: 26px;
     height: 26px;
     position: relative;
-    right: 7px;
+    left: 2px;
     top: 0px;
     border-style: solid;
     border-width: 13px 0px 13px 26px;
@@ -85,13 +100,13 @@ header {
     transform: scale(.6);
 }
 .step-button {
-    float: right;
+    float: left;
     content: "";
     box-sizing: border-box;
     width: 8px;
     height: 26px;
     position: relative;
-    right: 9px;
+    left: 0px;
     top: 0px;
     background: #202020;
     transform: scale(.65);
@@ -117,13 +132,13 @@ header {
     border-color: transparent transparent transparent #707070;
 }
 .reset-button {
-    float: right;
+    float: left;
     content: "";
     box-sizing: border-box;
     width: 26px;
     height: 26px;
     position: relative;
-    right: 9px;
+    left: 0px;
     top: 0px;
     background: #202020;
     transform: scale(.7);
