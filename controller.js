@@ -31,6 +31,7 @@ class Controller {
     this._currentLayer = 0;
     this._gotFinalTrajectory = false;
     this._planner.reset();
+    this.updateTimerOnScreen();
   }
 
   execute() {

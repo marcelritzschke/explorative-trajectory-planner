@@ -23,11 +23,23 @@ header {
     padding: 0px;
     margin: 0px;
 }
+.timer-section {
+    height: 22px;
+}
+.control-section {
+    height: 28px;
+}
+.settings-description {
+    color: white;
+}
 .timer {
     float: right;
     position: relative;
-    top: 5px;
-    right: 10px;
+    top: 0px;
+    right: 12px;
+    font-size: larger;
+    font-weight: bold;
+    font-family: 'Helvetica';
 }
 .control-section {
     width: 100%;
@@ -39,18 +51,18 @@ header {
     width: 20px;
     height: 26px;
     position: relative;
-    top: 15px;
-    right: 15px;
+    top: 0px;
+    right: 9px;
     border-style: solid;
     border-width: 0px 8px 0px 8px;
     border-color: #202020;
-    transform: scale(.8);
+    transform: scale(.7);
     transition: 50ms all ease;
 }
 .pause-button:hover {
     cursor: pointer;
     border-color: #707070;
-    transform: scale(.75);
+    transform: scale(.65);
 }
 .play-button {
     float: right;
@@ -59,18 +71,18 @@ header {
     width: 26px;
     height: 26px;
     position: relative;
-    right: 18px;
-    top: 10px;
+    right: 7px;
+    top: 0px;
     border-style: solid;
     border-width: 13px 0px 13px 26px;
     border-color: transparent transparent transparent #202020;
-    transform: scale(.75);
+    transform: scale(.65);
     transition: 50ms all ease;
 }
 .play-button:hover {
     cursor: pointer;
     border-color: transparent transparent transparent #707070;
-    transform: scale(.7);
+    transform: scale(.6);
 }
 .step-button {
     float: right;
@@ -79,14 +91,13 @@ header {
     width: 8px;
     height: 26px;
     position: relative;
-    right: 25px;
-    top: 10px;
+    right: 9px;
+    top: 0px;
     background: #202020;
-    transform: scale(.75);
+    transform: scale(.65);
     transition: 50ms all ease;
 }
 .step-button::before {
-    float: right;
     content: "";
     box-sizing: border-box;
     position: absolute;
@@ -100,7 +111,7 @@ header {
 .step-button:hover {
     cursor: pointer;
     background: #707070;
-    transform: scale(.7);
+    transform: scale(.6);
 }
 .step-button:hover::before {
     border-color: transparent transparent transparent #707070;
@@ -112,14 +123,14 @@ header {
     width: 26px;
     height: 26px;
     position: relative;
-    top: 10px;
-    right: 10px;
+    right: 9px;
+    top: 0px;
     background: #202020;
-    transform: scale(.8);
+    transform: scale(.7);
     transition: 50ms all ease;
 }
 .reset-button:hover {
     cursor: pointer;
     background: #707070;
-    transform: scale(.75);
+    transform: scale(.65);
 }
