@@ -53,14 +53,20 @@ class Trajectory {
   }
 }
 
-// eslint-disable-next-line no-unused-vars
-class Obstacle {
-  constructor(x, y, angle, width, height) {
+class BasicObject {
+  constructor(x, y, angle) {
     this.x = x;
     this.y = y;
+    this.angle = angle;
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
+class Obstacle extends BasicObject {
+  constructor(x, y, angle, width, height) {
+    super(x, y, angle);
     this.width = width;
     this.height = height;
-    this.angle = angle;
   }
 
   isColliding(state) {
@@ -81,9 +87,10 @@ class Obstacle {
 
 // eslint-disable-next-line no-unused-vars
 class Shape {
-  constructor(name, id, object) {
+  constructor(name, id, fabricObject, object = null) {
     this.name = name;
     this.id = id;
+    this.fabricObject = fabricObject;
     this.object = object;
   }
 }

@@ -1,13 +1,17 @@
 // eslint-disable-next-line no-unused-vars
 class Explorer {
-  constructor(ego, goal, obstacle) {
-    this._ego = ego;
+  constructor(goal, obstacle) {
     this._goal = goal;
     this._obstacle = obstacle;
     this._timestep = 2;
     this._intertime = 0.2;
     this._intersteps = this._timestep/ this._intertime;
     this._steeringAngles = [-0.4, -0.2, 0, 0.2, 0.4];
+    this._trajectories = [];
+    this._bestTrajectoryIdx = null;
+  }
+
+  reset() {
     this._trajectories = [];
     this._bestTrajectoryIdx = null;
   }
@@ -40,8 +44,8 @@ class Explorer {
 
   addCostDistanceToGoal() {
     this._trajectories[this._trajectories.length-1].forEach((trajectory) => {
-      const x = this._goal[0] - trajectory.lastState.x;
-      const y = this._goal[1] - trajectory.lastState.y;
+      const x = this._goal.x - trajectory.lastState.x;
+      const y = this._goal.y - trajectory.lastState.y;
       trajectory.cost += Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
     });
   }

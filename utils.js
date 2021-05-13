@@ -1,8 +1,8 @@
 // eslint-disable-next-line no-unused-vars
 const Utils = {
-  getObjectPositionInUsk(ego, object) {
-    const x = object.left;
-    const y = object.top;
+  transformObjectToUsk(ego, object) {
+    const x = object.x;
+    const y = object.y;
     const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
 
     let newX = x - ego.left;
@@ -13,7 +13,11 @@ const Utils = {
     newX = res[0];
     newY = res[1];
 
-    return [newX, newY, (object.angle - ego.angle) * Math.PI / 180];
+    object.x = newX;
+    object.y = newY;
+    object.angle = (object.angle - ego.angle) * Math.PI / 180;
+
+    return object;
   },
 
   getStateInGlobalSystem(ego, state) {
@@ -43,54 +47,91 @@ const Utils = {
     return [newX, newY];
   },
 
+  updateDiagonalsRectangle(rect) {
+    // TODO: figure out, maybe use scale ?
+    const xBuf = rect.left;
+    const yBuf = rect.top;
+    console.log(rect);
+    console.log(rect.item(0));
+    const newRect = new fabric.Rect({
+      left: rect.item(0).left,
+      top: rect.item(0).top,
+      width: rect.width * rect.scaleX,
+      height: rect.height * rect.scaleY,
+      angle: rect.angle,
+      fill: '',
+      originX: 'center',
+      originY: 'center',
+      stroke: 'black',
+      strokeWidth: 2,
+    });
+
+    const newGroup = this.fillRectangleWithDiagonals(newRect);
+    rect.forEachObject((obj) => {
+      rect.remove(obj);
+    });
+    newGroup.forEachObject((obj) => {
+      rect.addWithUpdate(obj);
+    });
+    rect.left = xBuf;
+    rect.top = yBuf;
+  },
+
   fillRectangleWithDiagonals(rect, gap = 10) {
+    const width = rect.width * rect.scaleX;
+    const height = rect.height * rect.scaleY;
+
     const group = new fabric.Group([rect], {
       left: rect.left,
       top: rect.top,
-      angle: 0,
       originX: 'center',
       originY: 'center',
     });
 
-    const lengthToGo = group.left + group.top;
+    const lengthToGo = (width + height)/ Math.sin(45 * Math.PI / 180);
     for (let i=0; i<lengthToGo/ gap; i++) {
       const dist = i * gap * Math.sin(45 * Math.PI / 180);
 
       let startX;
-      if (dist < rect.width) {
+      if (dist < width) {
         startX = dist;
       } else {
-        startX = rect.width;
+        startX = width;
       }
       let startY;
-      if (dist < rect.width) {
+      if (dist < width) {
         startY = 0;
-      } else if (dist > rect.width + rect.height) {
-        startY = rect.height;
+      } else if (dist > width + height) {
+        startY = height;
       } else {
-        startY = dist - rect.width;
+        startY = dist - width;
       }
 
       let endX;
-      if (dist < rect.height) {
+      if (dist < height) {
         endX = 0;
-      } else if (dist > rect.width + rect.height) {
-        endX = rect.width;
+      } else if (dist > width + height) {
+        endX = width;
       } else {
-        endX = dist - rect.height;
+        endX = dist - height;
       }
       let endY;
-      if (dist < rect.height) {
+      if (dist < height) {
         endY = dist;
       } else {
-        endY = rect.height;
+        endY = height;
       }
 
+      const start = this.rotatePoint(startX - width/ 2, startY - height / 2,
+          rect.angle * Math.PI/ 180);
+      const end = this.rotatePoint(endX - width / 2, endY - height/ 2,
+          rect.angle * Math.PI/ 180);
+
       const line = new fabric.Line([
-        startX + group.left - rect.width / 2,
-        startY + group.top - rect.height/ 2,
-        endX + group.left - rect.width / 2,
-        endY + group.top - rect.height/ 2],
+        start[0] + group.left,
+        start[1] + group.top,
+        end[0] + group.left,
+        end[1] + group.top],
       {type: 'line', stroke: 'black'});
       group.addWithUpdate(line);
     }
@@ -98,17 +139,31 @@ const Utils = {
     return group;
   },
 
-  convertToPixels(scale, position) {
-    position.x *= scale;
-    position.y *= scale;
+  convertToPixels(scale, object) {
+    object.x *= scale;
+    object.y *= scale;
 
-    return position;
+    if (Reflect.has(object, 'width')) {
+      object.width *= scale;
+    }
+    if (Reflect.has(object, 'height')) {
+      object.height *= scale;
+    }
+
+    return object;
   },
 
-  convertToMetric(scale, position) {
-    position.x /= scale;
-    position.y /= scale;
+  convertToMetric(scale, object) {
+    object.x /= scale;
+    object.y /= scale;
 
-    return position;
+    if (Reflect.has(object, 'width')) {
+      object.width /= scale;
+    }
+    if (Reflect.has(object, 'height')) {
+      object.height /= scale;
+    }
+
+    return object;
   },
 };

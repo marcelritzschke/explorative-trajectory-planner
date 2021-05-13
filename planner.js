@@ -1,20 +1,23 @@
 class Planner {
   constructor(view) {
     this._view = view;
-    this.reset();
+    this._explorer = null;
+    this.init();
   }
 
   get lastTrajectory() {
     return this._lastTrajectory;
   }
 
-  reset() {
-    const obstacle = this._view.getObstacle();
-    this._explorer = new Explorer([0, 0], [
-      this._view.getGoalPosition()[0],
-      this._view.getGoalPosition()[1],
-    ], obstacle);
+  init() {
+    this._explorer = new Explorer(
+        this._view.getGoal(),
+        this._view.getObstacle(),
+    );
+  }
 
+  reset() {
+    this._explorer.reset();
     this._lastTrajectory = [];
   }
 
@@ -29,15 +32,19 @@ class Planner {
     });
   }
 
-  explore(layerNumber) {
-    const layer = this._explorer.iterateLayer(layerNumber);
-    layer.forEach((trajectory) => {
-      if (trajectory.isColliding) {
-        this._view.drawTrajectory(trajectory, 'red', 1);
-      } else {
-        this._view.drawTrajectory(trajectory, 'black', 1);
-      }
-    });
+  explore(layerTotalNumber) {
+    this._explorer.reset();
+
+    for (let i=0; i<layerTotalNumber; ++i) {
+      const layer = this._explorer.iterateLayer(i);
+      layer.forEach((trajectory) => {
+        if (trajectory.isColliding) {
+          this._view.drawTrajectory(trajectory, 'red', 1);
+        } else {
+          this._view.drawTrajectory(trajectory, 'black', 1);
+        }
+      });
+    }
   }
 }
 
