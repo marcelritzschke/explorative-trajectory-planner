@@ -35,6 +35,10 @@ class Explorer {
         const newTrajectory = new Trajectory(
             this.calculateStates(state, item, 1));
         newTrajectory.prevIdx = j;
+        if (newTrajectory.lastState.isColliding) {
+          newTrajectory.cost = Infinity;
+        }
+
         this._trajectories[layerNumber+1].push(newTrajectory);
       });
     }
