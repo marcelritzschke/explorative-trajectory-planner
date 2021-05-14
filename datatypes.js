@@ -21,12 +21,35 @@ class State {
 
 // eslint-disable-next-line no-unused-vars
 class Trajectory {
-  constructor(states) {
-    this.states = states;
-    this.prevIdx = 0;
+  constructor() {
+    this.segments = [];
     this.cost = 0;
     this.origin = [0, 0, 0];
     this.time = 0;
+  }
+
+  get lastSegment() {
+    return this.segments[this.segments.length-1];
+  };
+
+  get isColliding() {
+    return this.lastSegment.isColliding;
+  }
+
+  push(segment) {
+    this.segments.push(segment);
+  }
+
+  unshift(segment) {
+    this.segments.unshift(segment);
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
+class Segment {
+  constructor(states) {
+    this.states = states;
+    this.prevIdx = 0;
 
     if (typeof states === typeof undefined) {
       this.states = [];
@@ -42,7 +65,7 @@ class Trajectory {
   };
 
   getDeepCopy() {
-    const copy = new Trajectory();
+    const copy = new Segment();
     copy.prevIdx = this.prevIdx;
     copy.cost = this.cost;
     this.states.forEach((state) => {

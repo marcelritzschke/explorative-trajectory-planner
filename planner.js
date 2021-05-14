@@ -22,29 +22,29 @@ class Planner {
   }
 
   calculateFinalTrajectory(timer) {
-    this._explorer.addCostDistanceToGoal();
-    this._explorer.calculateBestTrajectory();
     this._lastTrajectory = this._explorer.getBestTrajectory();
     this._lastTrajectory.origin = this._view.getEgoPosition();
     this._lastTrajectory.time = timer;
-    this._lastTrajectory.forEach((segment) => {
-      this._view.drawTrajectory(segment, 'rgb(3,90,32)', 3, 'dotted-line');
-    });
+    this._view.drawTrajectory(this._lastTrajectory, 'rgb(3,90,32)', 3,
+        'dotted-line', 'ChosenTrajectory');
   }
 
   explore(layerTotalNumber) {
     this._explorer.reset();
 
     for (let i=0; i<layerTotalNumber; ++i) {
-      const layer = this._explorer.iterateLayer(i);
-      layer.forEach((trajectory) => {
-        if (trajectory.isColliding) {
-          this._view.drawTrajectory(trajectory, 'red', 1);
-        } else {
-          this._view.drawTrajectory(trajectory, 'black', 1);
-        }
-      });
+      this._explorer.iterateLayer(i);
     }
+
+    this._view.setPreviousTrajectoriesInactive();
+    const trajectories = this._explorer.getTrajectories();
+    trajectories.forEach((trajectory) => {
+      if (trajectory.isColliding) {
+        this._view.drawTrajectory(trajectory, 'red', 2);
+      } else {
+        this._view.drawTrajectory(trajectory, 'grey', 2);
+      }
+    });
   }
 }
 

@@ -7,76 +7,89 @@ class Explorer {
     this._intertime = 0.2;
     this._intersteps = this._timestep/ this._intertime;
     this._steeringAngles = [-0.4, -0.2, 0, 0.2, 0.4];
+    this._segments = [];
     this._trajectories = [];
-    this._bestTrajectoryIdx = null;
   }
 
   reset() {
+    this._segments = [];
     this._trajectories = [];
-    this._bestTrajectoryIdx = null;
   }
 
   iterateLayer(layerNumber) {
     if (layerNumber === 0) {
-      const newTrajectory = new Trajectory([new State()]);
-      this._trajectories.push([newTrajectory]);
+      const newSegment = new Segment([new State()]);
+      this._segments.push([newSegment]);
     }
 
-    this._trajectories.push([]);
-    for (let j=0; j<this._trajectories[layerNumber].length; ++j) {
+    this._segments.push([]);
+    for (let j=0; j<this._segments[layerNumber].length; ++j) {
       const state = Object.assign({},
-          this._trajectories[layerNumber][j].lastState);
+          this._segments[layerNumber][j].lastState);
 
       if (state.isColliding) {
+        //TODO: push empty segment
         continue;
       }
 
       this._steeringAngles.forEach((item) => {
-        const newTrajectory = new Trajectory(
+        const newSegment = new Segment(
             this.calculateStates(state, item, 1));
-        newTrajectory.prevIdx = j;
-        if (newTrajectory.lastState.isColliding) {
-          newTrajectory.cost = Infinity;
+        newSegment.prevIdx = j;
+        if (newSegment.lastState.isColliding) {
+          newSegment.cost = Infinity;
         }
 
-        this._trajectories[layerNumber+1].push(newTrajectory);
+        this._segments[layerNumber+1].push(newSegment);
       });
     }
 
-    return this._trajectories[layerNumber+1];
+    return this._segments[layerNumber+1];
+  }
+
+  getTrajectories() {
+    const lastLayerIdx = this._segments.length - 1;
+    for (let i=0; i<this._segments[lastLayerIdx].length; ++i) {
+      this._trajectories.push(this.getTrajectoryBacktraceSegment(i));
+    }
+    this.addCostDistanceToGoal();
+
+    return this._trajectories;
+  }
+
+  getTrajectoryBacktraceSegment(index) {
+    const lastLayerIdx = this._segments.length - 1;
+    const trajectory = new Trajectory();
+    let layerIdx = lastLayerIdx;
+    let segmentIdx = index;
+    while (layerIdx >= 0) {
+      const segment = this._segments[layerIdx][segmentIdx];
+      trajectory.unshift(segment);
+      segmentIdx = segment.prevIdx;
+      layerIdx--;
+    }
+    return trajectory;
   }
 
   addCostDistanceToGoal() {
-    this._trajectories[this._trajectories.length-1].forEach((trajectory) => {
-      const x = this._goal.x - trajectory.lastState.x;
-      const y = this._goal.y - trajectory.lastState.y;
+    this._trajectories.forEach((trajectory) => {
+      const x = this._goal.x - trajectory.lastSegment.lastState.x;
+      const y = this._goal.y - trajectory.lastSegment.lastState.y;
       trajectory.cost += Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
     });
   }
 
-  calculateBestTrajectory() {
-    let bestCost = Infinity;
-    this._trajectories[this._trajectories.length-1]
-        .forEach((trajectory, index) => {
-          if (trajectory.cost <= bestCost) {
-            bestCost = trajectory.cost;
-            this._bestTrajectoryIdx = index;
-          }
-        });
-  }
-
   getBestTrajectory() {
-    const best = [];
-    let layerIdx = this._trajectories.length - 1;
-    let trajectoryIdx = this._bestTrajectoryIdx;
-    while (layerIdx >= 0) {
-      const trajectory = this._trajectories[layerIdx][trajectoryIdx];
-      best.unshift(trajectory);
-      trajectoryIdx = trajectory.prevIdx;
-      layerIdx--;
-    }
+    let bestCost = Infinity;
+    let bestIdx = null;
+    this._trajectories.forEach((trajectory, index) => {
+      if (trajectory.cost <= bestCost) {
+        bestCost = trajectory.cost;
+        bestIdx = index;
+      }
+    });
 
-    return best;
+    return this.getTrajectoryBacktraceSegment(bestIdx);
   }
 
   isColliding(state) {

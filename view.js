@@ -46,8 +46,21 @@ class View {
     this._canvas.clear();
 
     this._shapes.forEach((item) => {
-      this._canvas.add(item.fabricObject);
+      if (item.name !== 'Ego' && item.name !== 'Goal') {
+        this._canvas.add(item.fabricObject);
+      }
     });
+
+    // TODO: Add Ego on top -> find a more elegant solution
+    const goal = this.getShapeByName('Goal')[0];
+    if (goal !== null) {
+      this._canvas.add(goal.fabricObject);
+    }
+
+    const ego = this.getShapeByName('Ego')[0];
+    if (ego !== null) {
+      this._canvas.add(ego.fabricObject);
+    }
   }
 
   updateEgo(origin, state) {
@@ -65,7 +78,20 @@ class View {
     this.draw();
   }
 
-  drawTrajectory(trajectory, color, size, type) {
+  setPreviousTrajectoriesInactive() {
+    this._shapes.forEach((item) => {
+      if (item.name === 'Trajectory') {
+        item.fabricObject.forEachObject((obj) => {
+          obj.set({fill: '#ccc', radius: 1});
+        });
+      } else if (item.name === 'ChosenTrajectory') {
+        item.fabricObject.set({opacity: 0});
+      }
+    });
+    this.draw();
+  }
+
+  drawTrajectory(trajectory, color, size, type, name = 'Trajectory') {
     const trajGroup = new fabric.Group([], {
       left: this._ego.left,
       top: this._ego.top,
@@ -74,38 +100,52 @@ class View {
       evented: false,
     });
 
-    trajectory.getDeepCopy().states.forEach((state, index, self) => {
-      if (!state.isColliding) {
-        self[index].x *= this._scale;
-        self[index].y *= this._scale;
-        self[index] = Utils.getStateInGlobalSystem(new Pose(
-            this._ego.left, this._ego.top,
-            this._ego.angle), state);
+    trajectory.segments.forEach((segment) => {
+      segment.getDeepCopy().states.forEach((state, index, self) => {
+        if (!state.isColliding) {
+          self[index].x *= this._scale;
+          self[index].y *= this._scale;
+          self[index] = Utils.getStateInGlobalSystem(new Pose(
+              this._ego.left, this._ego.top, this._ego.angle), state);
 
-        const circle = new fabric.Circle({
-          top: state.y,
-          left: state.x,
-          radius: size,
-          fill: color,
-          originX: 'center',
-          originY: 'center',
-        });
-        trajGroup.addWithUpdate(circle);
-
-        if (type === 'dotted-line' && index !== 0) {
-          const line = new fabric.Line([
-            self[index-1].x, self[index-1].y,
-            state.x, state.y], {
-            stroke: color,
+          const circle = new fabric.Circle({
+            top: state.y,
+            left: state.x,
+            radius: size,
+            fill: color,
             originX: 'center',
             originY: 'center',
           });
-          trajGroup.addWithUpdate(line);
+          trajGroup.addWithUpdate(circle);
+
+          if (type === 'dotted-line' && index !== 0) {
+            const line = new fabric.Line([
+              self[index-1].x, self[index-1].y,
+              state.x, state.y], {
+              stroke: color,
+              originX: 'center',
+              originY: 'center',
+            });
+            trajGroup.addWithUpdate(line);
+          }
         }
-      }
+      });
     });
 
-    this.addShape(new Shape('Trajectory', this.getNextId(), trajGroup));
+    this.addShape(new Shape(name, this.getNextId(), trajGroup));
+  }
+
+  drawEgoPoint(color, size, name = 'EgoPoint') {
+    const circle = new fabric.Circle({
+      top: this._ego.top,
+      left: this._ego.left,
+      radius: size,
+      fill: color,
+      originX: 'center',
+      originY: 'center',
+    });
+
+    this.addShape(new Shape(name, this.getNextId(), circle));
   }
 
   getGoal() {
