@@ -28,7 +28,6 @@ class Explorer {
           this._segments[layerNumber][j].lastState);
 
       if (state.isColliding) {
-        //TODO: push empty segment
         continue;
       }
 
@@ -68,6 +67,8 @@ class Explorer {
       segmentIdx = segment.prevIdx;
       layerIdx--;
     }
+    trajectory.cost = trajectory.lastSegment.cost;
+
     return trajectory;
   }
 

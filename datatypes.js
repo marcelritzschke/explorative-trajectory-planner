@@ -50,6 +50,7 @@ class Segment {
   constructor(states) {
     this.states = states;
     this.prevIdx = 0;
+    this.cost = 0;
 
     if (typeof states === typeof undefined) {
       this.states = [];
