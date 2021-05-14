@@ -98,42 +98,41 @@ class Explorer {
   }
 
   calculateStates(initialState, theta, veloctity) {
-    if (Math.abs(theta) < Number.EPSILON) {
-      return this.calculateStraightMove(initialState, veloctity);
-    } else {
-      return this.calculateCrookedMove(initialState, theta, veloctity);
-    }
-  }
-
-  calculateCrookedMove(initialState, theta, veloctity) {
     const states = [initialState];
     for (let i = 0; i < this._intersteps; i++) {
-      const newState = Object.assign({}, states[i]);
-      newState.x += veloctity * this._intertime * Math.cos(states[i].theta);
-      newState.y += veloctity * this._intertime * Math.sin(states[i].theta);
-      newState.theta += 0.1 * theta; // TODO: figure out how this works!
-      newState.v = veloctity;
-      newState.t += this._intertime;
-      newState.isColliding |= this.isColliding(newState);
-      states.push(newState);
+      const angleDif = (i+1) / this._intersteps *
+          (theta - initialState.theta) + initialState.theta;
+      if (Math.abs(angleDif) < Number.EPSILON) {
+        states.push(this.calculateStraightMove(states[i], veloctity));
+      } else {
+        states.push(this.calculateCrookedMove(states[i], angleDif, veloctity));
+      }
     }
+    return states;
+  }
+
+  calculateCrookedMove(prevState, theta, veloctity) {
+    const newState = Object.assign({}, prevState);
+    newState.x += veloctity * this._intertime * Math.cos(prevState.theta);
+    newState.y += veloctity * this._intertime * Math.sin(prevState.theta);
+    newState.theta += 0.1 * theta; // TODO: figure out how this works!
+    newState.v = veloctity;
+    newState.t += this._intertime;
+    newState.isColliding |= this.isColliding(newState);
 
     // Remove initial state since it is already in previous segment
     // states.splice(0, 1);
 
-    return states;
+    return newState;
   }
 
-  calculateStraightMove(initialState, veloctity) {
-    const states = [initialState];
-    for (let i = 0; i < this._intersteps; i++) {
-      const newState = Object.assign({}, states[i]);
-      newState.x += veloctity * this._intertime;
-      newState.v = veloctity;
-      newState.t += this._intertime;
-      newState.isColliding |= this.isColliding(newState);
-      states.push(newState);
-    }
-    return states;
+  calculateStraightMove(prevState, veloctity) {
+    const newState = Object.assign({}, prevState);
+    newState.x += veloctity * this._intertime;
+    newState.v = veloctity;
+    newState.t += this._intertime;
+    newState.isColliding |= this.isColliding(newState);
+
+    return newState;
   }
 }
