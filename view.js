@@ -9,6 +9,7 @@ class View {
     this._ego = null;
     this._lastEgo = null;
     this._lastMovedEgo = null;
+    this._grid = null;
 
     this._canvas.on('object:added', this.objectAddedListener);
     this._canvas.on('object:modified', this.objectMovedListener);
@@ -123,7 +124,7 @@ class View {
     return this.getObjectByName('Obstacle');
   }
 
-  constructObstacle(left = this._width/ 2, top = this._height/ 2,
+  constructObstacle(left = this._width/ 2, top = 150,
       angle = 0, width = 100, height = 50) {
     const rect = new fabric.Rect({
       left: left,
@@ -165,7 +166,7 @@ class View {
     });
 
     const group = new fabric.Group([circle, dot], {
-      top: this._height/ 2,
+      top: 150,
       left: this._width - 300,
       angle: 90,
       originX: 'center',
@@ -202,7 +203,7 @@ class View {
 
     const group = new fabric.Group([triangle, car], {
       left: 250,
-      top: this._height/ 2 - 10,
+      top: 100,
       angle: 90,
       originX: 'center',
       originY: 'center',
@@ -221,21 +222,11 @@ class View {
   }
 
   createGrid() {
-    const grid = new fabric.Group([], {
-      selectable: false,
-      evented: false,
-      opacity: 0.25,
-    });
+    this._grid = new Grid(this._width, this._height, this._scale);
 
-    const gridSize = 50;
-    for (let i = 0; i < (this._width / gridSize); i++) {
-      grid.addWithUpdate(new fabric.Line([i * gridSize, 0, i * gridSize,
-        this._height], {type: 'line', stroke: '#ccc'}));
-      grid.addWithUpdate(new fabric.Line([0, i * gridSize,
-        this._width, i * gridSize], {type: 'line', stroke: '#ccc'}));
-    }
-
-    this.addShape(new Shape('Grid', this.getNextId(), grid));
+    this.addShape(new Shape('Grid',
+        this.getNextId(),
+        this._grid.object));
   }
 
   updateShape(shape) {
@@ -357,12 +348,24 @@ class View {
 
   updateScale() {
     const oldScale = this._scale;
-    const newScale = document.getElementById('scale').value;
+    let newScale = document.getElementById('scale').value;
+
+    if (newScale < 10) {
+      newScale = 10;
+      document.getElementById('scale').value = '10';
+    }
+
     this._shapes.forEach((shape) => {
       if (shape.name === 'Obstacle' || shape.name === 'Goal') {
         shape.object.rescale(oldScale, newScale);
       }
     });
+
+    if (this._grid != null) {
+      this._grid.rescale(newScale);
+      this.draw();
+    }
+
     this._scale = newScale;
   }
 }

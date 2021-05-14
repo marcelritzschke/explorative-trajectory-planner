@@ -39,11 +39,11 @@ input[type="text"] {
     padding-left: 5px;
 }
 .container {
+    height: 84%;
     border-top: 1px solid rgb(5, 46, 107);;
     border-radius: 0px;
     margin: 0px;
     padding: 0px;
-    height: 100%;
 }
 .canvas {
     width: 100%;
@@ -69,6 +69,7 @@ input[type="text"] {
     width: 100%;
 }
 .control {
+    width: 100px;
     position: relative;
     top: 0px;
     left: 50%;
