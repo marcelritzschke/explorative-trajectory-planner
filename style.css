@@ -12,12 +12,24 @@ header {
     height: 10px;
 }
 .dropdown {
+    font-size: small;
     width: 50px;
-    border: 1px solid #999;
+    height: 17px;
+    border: 1px solid rgb(5, 46, 107);
     color: rgb(5, 46, 107);
     background-color: rgb(255, 255, 255);
     border-radius: 0px;
 }
+input[type="text"] {
+    font-size: small;
+    width: 50px;
+    padding: 0px;
+    margin-right: 20px;
+    height: 15px;
+    border: 1px solid rgb(5, 46, 107);
+    color: rgb(5, 46, 107);
+    background-color: rgb(255, 255, 255);
+  }
 .settings-description {
     font-size: small;
     font-family: 'Helvetica';

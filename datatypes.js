@@ -59,6 +59,11 @@ class BasicObject {
     this.y = y;
     this.angle = angle;
   }
+
+  rescale(oldScale, newScale) {
+    this.x *= oldScale / newScale;
+    this.y *= oldScale / newScale;
+  }
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -67,6 +72,12 @@ class Obstacle extends BasicObject {
     super(x, y, angle);
     this.width = width;
     this.height = height;
+  }
+
+  rescale(oldScale, newScale) {
+    super.rescale(oldScale, newScale);
+    this.width *= oldScale / newScale;
+    this.height *= oldScale / newScale;
   }
 
   isColliding(state) {

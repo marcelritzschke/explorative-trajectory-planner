@@ -9,6 +9,8 @@ class Controller {
     this._plannerFrequency_ms = 2000;
     this._step = 0;
     this._running = false;
+
+    this.updateLayerNumber();
   }
 
   step() {

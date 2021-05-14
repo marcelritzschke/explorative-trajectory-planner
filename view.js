@@ -13,6 +13,7 @@ class View {
     this._canvas.on('object:added', this.objectAddedListener);
     this._canvas.on('object:modified', this.objectMovedListener);
 
+    this.updateScale();
     this.createGrid();
     this.constructEgoShape();
     this.constructGoal();
@@ -352,6 +353,17 @@ class View {
         target.width * target.scaleX, 'height', target.height * target.scaleY,
         'orientation', target.angle);
     view.objectMovedUpdate(target);
+  }
+
+  updateScale() {
+    const oldScale = this._scale;
+    const newScale = document.getElementById('scale').value;
+    this._shapes.forEach((shape) => {
+      if (shape.name === 'Obstacle' || shape.name === 'Goal') {
+        shape.object.rescale(oldScale, newScale);
+      }
+    });
+    this._scale = newScale;
   }
 }
 

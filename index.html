@@ -20,11 +20,14 @@
 
     </header>
     <section class="settings-description">
+        <span class="input">Scale (Pixels/Meter): 
+            <input id="scale" type="text" value="50" type="text" onchange="view.updateScale()"/>
+        </span>
         <span class="">Number of Layers:
             <select class="dropdown" id="layerNumber" onchange="controller.updateLayerNumber()">
                 <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3" selected>3</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
             </select>
         </span>
     </section>
