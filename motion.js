@@ -42,7 +42,7 @@ class Motion {
         trajectory.origin[1],
         trajectory.origin[2]);
     this._view.updateEgo(origin, Object.assign({}, state));
-    this._view.drawEgoPoint('rgb(3,90,32)', 1.5);
+    this._view.drawEgoPoint(colorMap.get('driven'), 1.5);
   }
 
   interpolate(fraction, stateFirst, stateSecond) {

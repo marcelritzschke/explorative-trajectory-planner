@@ -25,7 +25,7 @@ class Planner {
     this._lastTrajectory = this._explorer.getBestTrajectory();
     this._lastTrajectory.origin = this._view.getEgoPosition();
     this._lastTrajectory.time = timer;
-    this._view.drawTrajectory(this._lastTrajectory, 'rgb(3,90,32)', 3,
+    this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
         'dotted-line', 'ChosenTrajectory');
   }
 
@@ -40,9 +40,9 @@ class Planner {
     const trajectories = this._explorer.getTrajectories();
     trajectories.forEach((trajectory) => {
       if (trajectory.isColliding) {
-        this._view.drawTrajectory(trajectory, 'red', 2);
+        this._view.drawTrajectory(trajectory, colorMap.get('colliding'), 1.5);
       } else {
-        this._view.drawTrajectory(trajectory, 'grey', 2);
+        this._view.drawTrajectory(trajectory, colorMap.get('trajectory'), 1.5);
       }
     });
   }

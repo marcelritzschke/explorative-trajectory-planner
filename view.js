@@ -11,8 +11,12 @@ class View {
     this._lastMovedEgo = null;
     this._grid = null;
 
-    this._canvas.on('object:added', this.objectAddedListener);
-    this._canvas.on('object:modified', this.objectMovedListener);
+    this._canvas.on('object:added', Listener.objectAddedListener);
+    this._canvas.on('object:modified', Listener.objectMovedListener);
+    this._canvas.on('mouse:wheel', Listener.mouseWheelListener);
+    this._canvas.on('mouse:down', Listener.mouseDownListener);
+    this._canvas.on('mouse:move', Listener.mouseMoveListener);
+    this._canvas.on('mouse:up', Listener.mouseUpListener);
 
     this.updateScale();
     this.createGrid();
@@ -82,7 +86,7 @@ class View {
     this._shapes.forEach((item) => {
       if (item.name === 'Trajectory') {
         item.fabricObject.forEachObject((obj) => {
-          obj.set({fill: '#ccc', radius: 1});
+          obj.set({fill: colorMap.get('inactive'), radius: 1});
         });
       } else if (item.name === 'ChosenTrajectory') {
         item.fabricObject.set({opacity: 0});
@@ -175,7 +179,7 @@ class View {
       fill: '',
       originX: 'center',
       originY: 'center',
-      stroke: 'black',
+      stroke: colorMap.get('obstacle'),
       strokeWidth: 2,
     });
     const filledRect = Utils.fillRectangleWithDiagonals(rect);
@@ -192,7 +196,7 @@ class View {
     const circle = new fabric.Circle({
       radius: 10,
       fill: '',
-      stroke: 'rgb(6,62,146)',
+      stroke: colorMap.get('goal'),
       strokeWidth: 2,
       originX: 'center',
       originY: 'center',
@@ -200,7 +204,7 @@ class View {
 
     const dot = new fabric.Circle({
       radius: 2,
-      fill: 'rgb(6,62,146)',
+      fill: colorMap.get('goal'),
       originX: 'center',
       originY: 'center',
     });
@@ -222,26 +226,25 @@ class View {
 
   constructEgoShape() {
     const triangle = new fabric.Triangle({
-      width: 16,
-      height: 16,
-      angle: 0,
-      fill: 'rgb(3,90,32)',
+      width: 12,
+      height: 12,
+      fill: colorMap.get('ego'),
       originX: 'center',
       originY: 'center',
       top: 10,
     });
 
     const car = new fabric.Rect({
-      width: 30,
-      height: 50,
-      fill: 'rgba(0,0,0,0)',
-      stroke: 'rgb(3,90,32)',
+      width: 20,
+      height: 40,
+      fill: 'white',
+      stroke: colorMap.get('ego'),
       strokeWidth: 2,
       originX: 'center',
       originY: 'center',
     });
 
-    const group = new fabric.Group([triangle, car], {
+    const group = new fabric.Group([car, triangle], {
       left: 250,
       top: 100,
       angle: 90,
@@ -253,12 +256,6 @@ class View {
     this._lastEgo = Object.assign({}, this._ego);
     this._lastMovedEgo = Object.assign({}, this._ego);
     this.addShape(new Shape('Ego', this.getNextId(), group));
-  }
-
-  objectAddedListener(ev) {
-    // const target = ev.target;
-    // console.log('left', target.left, 'top', target.top,
-    //    'width', target.width, 'height', target.height);
   }
 
   createGrid() {
@@ -376,14 +373,6 @@ class View {
 
     view.reset();
     controller.reset();
-  }
-
-  objectMovedListener(ev) {
-    const target = ev.target;
-    console.log('left', target.left, 'top', target.top, 'width',
-        target.width * target.scaleX, 'height', target.height * target.scaleY,
-        'orientation', target.angle);
-    view.objectMovedUpdate(target);
   }
 
   updateScale() {

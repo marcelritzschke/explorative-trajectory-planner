@@ -26,9 +26,10 @@ class Grid {
     const gridSize = this._scale;
     for (let i = 0; i < (this._width / gridSize); i++) {
       grid.addWithUpdate(new fabric.Line([i * gridSize, 0, i * gridSize,
-        this._height], {type: 'line', stroke: '#ccc'}));
+        this._height], {type: 'line', stroke: colorMap.get('grid')}));
       grid.addWithUpdate(new fabric.Line([0, i * gridSize,
-        this._width, i * gridSize], {type: 'line', stroke: '#ccc'}));
+        this._width, i * gridSize], {type: 'line',
+        stroke: colorMap.get('grid')}));
     }
   }
 
