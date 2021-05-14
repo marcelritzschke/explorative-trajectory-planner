@@ -6,7 +6,8 @@ class Explorer {
     this._timestep = 2;
     this._intertime = 0.2;
     this._intersteps = this._timestep/ this._intertime;
-    this._steeringAngles = [-0.4, -0.2, 0, 0.2, 0.4];
+    this._steeringAngles = [-0.4, 0, 0.4];
+    this._velocities = [0., 1.];
     this._segments = [];
     this._trajectories = [];
   }
@@ -31,15 +32,18 @@ class Explorer {
         continue;
       }
 
-      this._steeringAngles.forEach((item) => {
-        const newSegment = new Segment(
-            this.calculateStates(state, item, 1));
-        newSegment.prevIdx = j;
-        if (newSegment.lastState.isColliding) {
-          newSegment.cost = Infinity;
-        }
+      this._steeringAngles.forEach((angle) => {
+        this._velocities.forEach((veloctity) => {
+          const newSegment = new Segment(
+              this.calculateStates(state, angle, veloctity));
 
-        this._segments[layerNumber+1].push(newSegment);
+          newSegment.prevIdx = j;
+          if (newSegment.lastState.isColliding) {
+            newSegment.cost = Infinity;
+          }
+
+          this._segments[layerNumber+1].push(newSegment);
+        });
       });
     }
 
@@ -100,12 +104,15 @@ class Explorer {
   calculateStates(initialState, theta, veloctity) {
     const states = [initialState];
     for (let i = 0; i < this._intersteps; i++) {
-      const angleDif = (i+1) / this._intersteps *
+      const angle = (i+1) / this._intersteps *
           (theta - initialState.theta) + initialState.theta;
-      if (Math.abs(angleDif) < Number.EPSILON) {
-        states.push(this.calculateStraightMove(states[i], veloctity));
+      const vel = (i+1) / this._intersteps *
+          (veloctity - initialState.v) + initialState.v;
+
+      if (Math.abs(angle) < Number.EPSILON) {
+        states.push(this.calculateStraightMove(states[i], vel));
       } else {
-        states.push(this.calculateCrookedMove(states[i], angleDif, veloctity));
+        states.push(this.calculateCrookedMove(states[i], angle, vel));
       }
     }
     return states;
@@ -115,7 +122,8 @@ class Explorer {
     const newState = Object.assign({}, prevState);
     newState.x += veloctity * this._intertime * Math.cos(prevState.theta);
     newState.y += veloctity * this._intertime * Math.sin(prevState.theta);
-    newState.theta += 0.1 * theta; // TODO: figure out how this works!
+    // TODO: figure out how this works!
+    newState.theta += 0.1 * theta * veloctity;
     newState.v = veloctity;
     newState.t += this._intertime;
     newState.isColliding |= this.isColliding(newState);

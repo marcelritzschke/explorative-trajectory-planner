@@ -25,19 +25,21 @@ class Planner {
     this._lastTrajectory = this._explorer.getBestTrajectory();
     this._lastTrajectory.origin = this._view.getEgoPosition();
     this._lastTrajectory.time = timer;
+
     this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
         'dotted-line', 'ChosenTrajectory');
   }
 
   explore(layerTotalNumber) {
-    this._explorer.reset();
+    const startTime = new Date().getTime();
 
+    this._explorer.reset();
     for (let i=0; i<layerTotalNumber; ++i) {
       this._explorer.iterateLayer(i);
     }
-
     this._view.setPreviousTrajectoriesInactive();
     const trajectories = this._explorer.getTrajectories();
+
     trajectories.forEach((trajectory) => {
       if (trajectory.isColliding) {
         this._view.drawTrajectory(trajectory, colorMap.get('colliding'), 1.5);
@@ -45,6 +47,9 @@ class Planner {
         this._view.drawTrajectory(trajectory, colorMap.get('trajectory'), 1.5);
       }
     });
+
+    console.log('Planner.explore() time =',
+        new Date().getTime() - startTime, 'ms');
   }
 }
 
