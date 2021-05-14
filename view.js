@@ -50,21 +50,14 @@ class View {
     this._canvas.clear();
 
     this._shapes.forEach((item) => {
-      if (item.name !== 'Ego' && item.name !== 'Goal') {
-        this._canvas.add(item.fabricObject);
-      }
+      this._canvas.add(item.fabricObject);
     });
+  }
 
-    // TODO: Add Ego on top -> find a more elegant solution
-    const goal = this.getShapeByName('Goal')[0];
-    if (goal !== null) {
-      this._canvas.add(goal.fabricObject);
-    }
-
-    const ego = this.getShapeByName('Ego')[0];
-    if (ego !== null) {
-      this._canvas.add(ego.fabricObject);
-    }
+  bringFixedShapesInFront() {
+    this.getShapeByName('Obstacle')[0].fabricObject.bringToFront();
+    this.getShapeByName('Goal')[0].fabricObject.bringToFront();
+    this.getShapeByName('Ego')[0].fabricObject.bringToFront();
   }
 
   updateEgo(origin, state) {
@@ -78,8 +71,7 @@ class View {
     this._ego.top = newPosition.y;
     this._ego.angle = newPosition.theta;
     this.updateAllShapesToNewEgo();
-
-    this.draw();
+    this.bringFixedShapesInFront();
   }
 
   setPreviousTrajectoriesInactive() {
@@ -92,17 +84,10 @@ class View {
         item.fabricObject.set({opacity: 0});
       }
     });
-    this.draw();
   }
 
   drawTrajectory(trajectory, color, size, type, name = 'Trajectory') {
-    const trajGroup = new fabric.Group([], {
-      left: this._ego.left,
-      top: this._ego.top,
-      angle: 0,
-      selectable: false,
-      evented: false,
-    });
+    const objects = [];
 
     trajectory.segments.forEach((segment) => {
       segment.getDeepCopy().states.forEach((state, index, self) => {
@@ -120,7 +105,7 @@ class View {
             originX: 'center',
             originY: 'center',
           });
-          trajGroup.addWithUpdate(circle);
+          objects.push(circle);
 
           if (type === 'dotted-line' && index !== 0) {
             const line = new fabric.Line([
@@ -130,11 +115,24 @@ class View {
               originX: 'center',
               originY: 'center',
             });
-            trajGroup.addWithUpdate(line);
+            objects.push(line);
           }
         }
       });
     });
+
+    const trajGroup = new fabric.Group(objects, {
+      left: this._ego.left,
+      top: this._ego.top,
+      angle: 0,
+      selectable: false,
+      evented: false,
+      originX: 'center',
+      originY: 'center',
+    });
+
+    trajGroup.set({left: this._ego.left - trajGroup.getObjects()[0].left,
+      top: this._ego.top - trajGroup.getObjects()[0].top});
 
     this.addShape(new Shape(name, this.getNextId(), trajGroup));
   }
@@ -279,7 +277,7 @@ class View {
 
   addShape(shape) {
     this._shapes.push(shape);
-    this.draw();
+    this._canvas.add(shape.fabricObject);
   }
 
   removeShape(shape) {

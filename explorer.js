@@ -6,7 +6,7 @@ class Explorer {
     this._timestep = 2;
     this._intertime = 0.2;
     this._intersteps = this._timestep/ this._intertime;
-    this._steeringAngles = [-0.4, 0, 0.4];
+    this._steeringAngles = [-.4, .0, .4];
     this._velocities = [0., 1.];
     this._segments = [];
     this._trajectories = [];
