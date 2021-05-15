@@ -1,12 +1,12 @@
 // eslint-disable-next-line no-unused-vars
 class Explorer {
-  constructor(goal, obstacle) {
+  constructor(goal, obstacles) {
     this._goal = goal;
-    this._obstacle = obstacle;
+    this._obstacles = obstacles;
     this._timestep = 2;
     this._intertime = 0.2;
     this._intersteps = this._timestep/ this._intertime;
-    this._steeringAngles = [-.4, .0, .4];
+    this._steeringAngles = [-.4, -.2, .0, .2, .4];
     this._velocities = [0., 1.];
     this._segments = [];
     this._trajectories = [];
@@ -98,7 +98,11 @@ class Explorer {
   }
 
   isColliding(state) {
-    return this._obstacle.isColliding(state);
+    let colliding = false;
+    for (const obstacle of this._obstacles) {
+      colliding |= obstacle.isColliding(state);
+    }
+    return colliding;
   }
 
   calculateStates(initialState, theta, veloctity) {

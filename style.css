@@ -15,6 +15,7 @@ header {
     font-size: small;
     width: 50px;
     height: 17px;
+    margin-right: 20px;
     border: 1px solid rgb(5, 46, 107);
     color: rgb(5, 46, 107);
     background-color: rgb(255, 255, 255);

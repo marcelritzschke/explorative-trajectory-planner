@@ -25,12 +25,15 @@
         <span class="input">Scale (Pixels/Meter): 
             <input id="scale" type="text" value="50" type="text" onchange="view.updateScale()"/>
         </span>
-        <span class="">Number of Layers:
+        <span class="">Layers:
             <select class="dropdown" id="layerNumber" onchange="controller.updateLayerNumber()">
                 <option value="1">1</option>
                 <option value="2" selected>2</option>
                 <option value="3">3</option>
             </select>
+        </span>
+        <span class="input">Obstacles: 
+            <input id="obstacles" type="text" value="1" type="text" onchange="controller.updateObstacles()"/>
         </span>
     </section>
     <section class="control-section">

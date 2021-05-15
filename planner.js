@@ -2,22 +2,18 @@ class Planner {
   constructor(view) {
     this._view = view;
     this._explorer = null;
-    this.init();
+    this.reset();
   }
 
   get lastTrajectory() {
     return this._lastTrajectory;
   }
 
-  init() {
+  reset() {
     this._explorer = new Explorer(
         this._view.getGoal(),
-        this._view.getObstacle(),
+        this._view.getObstacles(),
     );
-  }
-
-  reset() {
-    this._explorer.reset();
     this._lastTrajectory = [];
   }
 

@@ -24,7 +24,7 @@ class View {
     this.createGrid();
     this.constructEgoShape();
     this.constructGoal();
-    this.addShape(this.constructObstacle());
+    this.updateObstacles();
     this.render();
   }
 
@@ -183,7 +183,7 @@ class View {
   }
 
   getGoal() {
-    return this.getObjectByName('Goal');
+    return this.getObjectsByName('Goal')[0];
   }
 
   getEgoPosition() {
@@ -194,8 +194,8 @@ class View {
     ];
   }
 
-  getObstacle() {
-    return this.getObjectByName('Obstacle');
+  getObstacles() {
+    return this.getObjectsByName('Obstacle');
   }
 
   constructObstacle(left = this._width/ 2, top = 150,
@@ -314,8 +314,12 @@ class View {
     }
   }
 
-  getObjectByName(name) {
-    return this.getListOfShapesByName(name)[0].object;
+  getObjectsByName(name) {
+    const objects = [];
+    this.getListOfShapesByName(name).forEach((shape) => {
+      objects.push(shape.object);
+    });
+    return objects;
   }
 
   getNextId() {
@@ -323,30 +327,31 @@ class View {
   }
 
   updateAllShapesToNewEgo() {
-    this.updateShapeToNewEgo('Obstacle');
-    this.updateShapeToNewEgo('Goal');
+    this.updateShapesToNewEgo('Obstacle');
+    this.updateShapesToNewEgo('Goal');
 
     this._lastEgo = Object.assign({}, this._ego);
   }
 
-  updateShapeToNewEgo(name) {
-    const shape = this._shapes.get(name)[0];
-    let newEgo = new BasicObject(this._ego.left, this._ego.top,
-        this._ego.angle);
+  updateShapesToNewEgo(name) {
+    this._shapes.get(name).forEach((shape) => {
+      let newEgo = new BasicObject(this._ego.left, this._ego.top,
+          this._ego.angle);
 
-    newEgo = Utils.transformObjectToUsk(this._lastEgo, newEgo);
+      newEgo = Utils.transformObjectToUsk(this._lastEgo, newEgo);
 
-    const xShift = newEgo.x/ this._scale;
-    const yShift = newEgo.y/ this._scale;
-    const theta = (this._ego.angle - this._lastEgo.angle) * Math.PI / 180;
+      const xShift = newEgo.x/ this._scale;
+      const yShift = newEgo.y/ this._scale;
+      const theta = (this._ego.angle - this._lastEgo.angle) * Math.PI / 180;
 
-    const newX = shape.object.x - xShift;
-    const newY = shape.object.y - yShift;
+      const newX = shape.object.x - xShift;
+      const newY = shape.object.y - yShift;
 
-    const res = Utils.rotatePoint(newX, newY, theta);
-    shape.object.x = res[0];
-    shape.object.y = res[1];
-    shape.object.angle = shape.object.angle - theta;
+      const res = Utils.rotatePoint(newX, newY, theta);
+      shape.object.x = res[0];
+      shape.object.y = res[1];
+      shape.object.angle = shape.object.angle - theta;
+    });
   }
 
   objectMovedUpdate(target) {
@@ -358,13 +363,17 @@ class View {
       Utils.transformObjectToUsk(this._ego, newObj);
       Utils.convertToMetric(this._scale, newObj);
       Object.assign(this._shapes.get('Goal')[0].object, newObj);
-    } else if (this._shapes.get('Obstacle')[0].fabricObject) {
-      const newObj = new Obstacle(target.left, target.top, target.angle,
-          target.width * target.scaleX, target.height * target.scaleY);
-      Utils.transformObjectToUsk(this._ego, newObj);
-      Utils.convertToMetric(this._scale, newObj);
-      Object.assign(this._shapes.get('Obstacle')[0].object, newObj);
-      // TODO: Utils.updateDiagonalsRectangle(target);
+    } else {
+      this._shapes.get('Obstacle').forEach((shape) => {
+        if (shape.fabricObject == target) {
+          const newObj = new Obstacle(target.left, target.top, target.angle,
+              target.width * target.scaleX, target.height * target.scaleY);
+          Utils.transformObjectToUsk(this._ego, newObj);
+          Utils.convertToMetric(this._scale, newObj);
+          Object.assign(shape.object, newObj);
+          // TODO: Utils.updateDiagonalsRectangle(target);
+        }
+      });
     }
 
     view.reset();
@@ -393,6 +402,22 @@ class View {
     }
 
     this._scale = newScale;
+  }
+
+  updateObstacles() {
+    const count = document.getElementById('obstacles').value;
+    this._shapes.get('Obstacle')
+        .splice(0, this._shapes.get('Obstacle').length);
+
+    for (let i=1; i<=count; ++i) {
+      if (i === 1) {
+        this.addShape(this.constructObstacle());
+      } else {
+        this.addShape(this.constructObstacle((i-1) * 150 + 50, 50, 0, 100, 50));
+      }
+    }
+
+    this.reset();
   }
 }
 

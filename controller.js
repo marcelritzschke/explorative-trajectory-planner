@@ -56,6 +56,11 @@ class Controller {
         this.endTime - this.startTime, 'ms');
   }
 
+  updateObstacles() {
+    this._view.updateObstacles();
+    this._planner.reset();
+  }
+
   updateLayerNumber() {
     this._layerTotalNumber = document.getElementById('layerNumber').value;
   }
