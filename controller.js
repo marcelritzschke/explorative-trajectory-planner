@@ -12,6 +12,7 @@ class Controller {
     this._activeState = new State();
 
     this.updateLayerNumber();
+    this.updateDrawExploration();
   }
 
   step() {
@@ -69,6 +70,11 @@ class Controller {
 
   updateLayerNumber() {
     this._layerTotalNumber = document.getElementById('layerNumber').value;
+  }
+
+  updateDrawExploration() {
+    this._planner.drawExploration =
+        document.getElementById('drawExploration').checked;
   }
 
   updateTimerOnScreen() {

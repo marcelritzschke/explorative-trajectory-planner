@@ -9,6 +9,10 @@ class Planner {
     return this._lastTrajectory;
   }
 
+  set drawExploration(value) {
+    this._drawExploration = value;
+  }
+
   reset() {
     this._explorer = new Explorer(
         this._view.getGoal(),
@@ -37,13 +41,19 @@ class Planner {
     this._view.setPreviousTrajectoriesInactive();
     const trajectories = this._explorer.getTrajectories();
 
-    trajectories.forEach((trajectory) => {
+    const notcolliding = [];
+    const colliding = [];
+    for (const trajectory of trajectories) {
       if (trajectory.isColliding) {
-        this._view.drawTrajectory(trajectory, colorMap.get('colliding'), 1.5);
+        colliding.push(trajectory);
       } else {
-        this._view.drawTrajectory(trajectory, colorMap.get('trajectory'), 1.5);
+        notcolliding.push(trajectory);
       }
-    });
+    }
+    this._drawExploration && this._view.drawTrajectories(notcolliding,
+        colorMap.get('trajectory'), 1.5);
+    this._drawExploration && this._view.drawTrajectories(colliding,
+        colorMap.get('colliding'), 1.5);
 
     console.log('Planner.explore() time =',
         new Date().getTime() - startTime, 'ms');

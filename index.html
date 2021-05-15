@@ -30,10 +30,15 @@
                 <option value="1">1</option>
                 <option value="2" selected>2</option>
                 <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
             </select>
         </span>
         <span class="input">Obstacles: 
             <input id="obstacles" type="text" value="1" type="text" onchange="controller.updateObstacles()"/>
+        </span>
+        <span class="input">Draw Exploration: 
+            <input id="drawExploration" type="checkbox" checked onchange="controller.updateDrawExploration()"/>
         </span>
     </section>
     <section class="control-section">

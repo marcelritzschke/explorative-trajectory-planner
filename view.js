@@ -118,9 +118,8 @@ class View {
     chosenTrajectory.splice(0, chosenTrajectory.length);
   }
 
-  drawTrajectory(trajectory, color, size, type, name = 'TrajectoryActive') {
+  getGraphicsFromTrajectory(trajectory, color, size, type) {
     const objects = [];
-
     trajectory.segments.forEach((segment) => {
       segment.getDeepCopy().states.forEach((state, index, self) => {
         if (!state.isColliding) {
@@ -152,7 +151,10 @@ class View {
         }
       });
     });
+    return objects;
+  }
 
+  createTrajectoryGroup(objects) {
     const trajGroup = new fabric.Group(objects, {
       left: this._ego.left,
       top: this._ego.top,
@@ -166,7 +168,25 @@ class View {
     trajGroup.set({left: this._ego.left - trajGroup.getObjects()[0].left,
       top: this._ego.top - trajGroup.getObjects()[0].top});
 
-    this.addShape(new Shape(name, this.getNextId(), trajGroup));
+    return trajGroup;
+  }
+
+  drawTrajectories(trajectories, color, size, type, name = 'TrajectoryActive') {
+    let objects = [];
+    trajectories.forEach((trajectory) => {
+      objects = objects.concat(
+          this.getGraphicsFromTrajectory(trajectory, color, size, type));
+    });
+    objects.length !== 0 && this.addShape(new Shape(name, this.getNextId(),
+        this.createTrajectoryGroup(objects)));
+  }
+
+  drawTrajectory(trajectory, color, size, type, name = 'TrajectoryActive') {
+    const objects =
+        this.getGraphicsFromTrajectory(trajectory, color, size, type);
+
+    this.addShape(new Shape(name, this.getNextId(),
+        this.createTrajectoryGroup(objects)));
   }
 
   drawEgoPoint(color, size, name = 'EgoPoint') {
