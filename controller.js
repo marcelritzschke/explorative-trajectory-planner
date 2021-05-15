@@ -1,7 +1,8 @@
 class Controller {
-  constructor(planner, motion) {
+  constructor(planner, motion, view) {
     this._planner = planner;
     this._motion = motion;
+    this._view = view;
     this._intervalHandler = null;
     this._layerTotalNumber = 2;
     this._timer = 0;
@@ -48,6 +49,7 @@ class Controller {
 
     this._timer += this._baseFrequency_ms/ 1000;
     this.updateTimerOnScreen();
+    this._view.render();
 
     this.endTime = new Date().getTime();
     console.log('Controller.execute() time =',
@@ -85,7 +87,7 @@ class Controller {
 
 // eslint-disable-next-line no-unused-vars
 function initializeController() {
-  controller = new Controller(planner, motion);
+  controller = new Controller(planner, motion, view);
 }
 
 // eslint-disable-next-line no-unused-vars

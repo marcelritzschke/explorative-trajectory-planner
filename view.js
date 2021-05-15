@@ -25,6 +25,7 @@ class View {
     this.constructEgoShape();
     this.constructGoal();
     this.addShape(this.constructObstacle());
+    this.render();
   }
 
   initMap() {
@@ -56,6 +57,12 @@ class View {
         this._canvas.add(shape.fabricObject);
       });
     });
+
+    this.render();
+  }
+
+  render() {
+    this._canvas.requestRenderAll();
   }
 
   bringFixedShapesInFront() {
@@ -90,12 +97,14 @@ class View {
     }
 
     const activeTrajectories = this._shapes.get('TrajectoryActive');
-    const inactiveTrajectories = this._shapes.get('TrajectoryInactive');
+    // const inactiveTrajectories = this._shapes.get('TrajectoryInactive');
     activeTrajectories.forEach((shape) => {
-      shape.fabricObject.forEachObject((obj) => {
-        obj.set({fill: colorMap.get('inactive'), radius: 1});
-      });
-      inactiveTrajectories.push(shape);
+      this._canvas.remove(shape.fabricObject);
+    // @TODO: Enabling this will slow down performance due heavy load on canvas.
+    // shape.fabricObject.forEachObject((obj) => {
+    //   obj.set({fill: colorMap.get('inactive'), radius: 1, dirty: false});
+    // });
+    // inactiveTrajectories.push(shape);
     });
     activeTrajectories.length = 0;
 
@@ -395,6 +404,7 @@ function initializeView() {
   view = new View(new fabric.Canvas('mainView', {
     width: parseFloat(style.width),
     height: parseFloat(style.height),
+    renderOnAddRemove: false,
   }));
 }
 
