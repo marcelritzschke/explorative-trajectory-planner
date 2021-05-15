@@ -26,10 +26,11 @@ class Planner {
         'dotted-line', 'ChosenTrajectory');
   }
 
-  explore(layerTotalNumber) {
+  explore(initialState, layerTotalNumber) {
     const startTime = new Date().getTime();
 
     this._explorer.reset();
+    this._explorer.setInitialState(initialState);
     for (let i=0; i<layerTotalNumber; ++i) {
       this._explorer.iterateLayer(i);
     }

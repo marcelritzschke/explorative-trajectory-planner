@@ -6,10 +6,11 @@ class Explorer {
     this._timestep = 2;
     this._intertime = 0.2;
     this._intersteps = this._timestep/ this._intertime;
-    this._steeringAngles = [-.4, -.2, .0, .2, .4];
+    this._steeringAngles = [-.6, -.3, .0, .3, .6];
     this._velocities = [0., 1.];
     this._segments = [];
     this._trajectories = [];
+    this._initialState = new State();
   }
 
   reset() {
@@ -17,9 +18,13 @@ class Explorer {
     this._trajectories = [];
   }
 
+  setInitialState(initialState) {
+    this.initialState = initialState;
+  }
+
   iterateLayer(layerNumber) {
     if (layerNumber === 0) {
-      const newSegment = new Segment([new State()]);
+      const newSegment = new Segment([this.initialState]);
       this._segments.push([newSegment]);
     }
 

@@ -9,7 +9,7 @@ class Controller {
     this._baseFrequency_ms = 50;
     this._plannerFrequency_ms = 2000;
     this._step = 0;
-    this._running = false;
+    this._activeState = new State();
 
     this.updateLayerNumber();
   }
@@ -41,11 +41,11 @@ class Controller {
 
     if (this._step++ %
         (this._plannerFrequency_ms/ this._baseFrequency_ms) === 0) {
-      this._planner.explore(this._layerTotalNumber);
+      this._planner.explore(this.createInitialState(), this._layerTotalNumber);
       this._planner.calculateFinalTrajectory(this._timer);
     }
 
-    this._motion.move(this._timer);
+    this._activeState = this._motion.move(this._timer);
 
     this._timer += this._baseFrequency_ms/ 1000;
     this.updateTimerOnScreen();
@@ -54,6 +54,12 @@ class Controller {
     this.endTime = new Date().getTime();
     console.log('Controller.execute() time =',
         this.endTime - this.startTime, 'ms');
+  }
+
+  createInitialState() {
+    const state = new State();
+    state.v = this._activeState.v;
+    return state;
   }
 
   updateObstacles() {
