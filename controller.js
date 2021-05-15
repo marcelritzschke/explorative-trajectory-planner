@@ -34,6 +34,10 @@ class Controller {
   }
 
   execute() {
+    this.startTime = new Date().getTime();
+    console.log('Controller.execute() interval =',
+        this.startTime - this.endTime, 'ms');
+
     if (this._step++ %
         (this._plannerFrequency_ms/ this._baseFrequency_ms) === 0) {
       this._planner.explore(this._layerTotalNumber);
@@ -44,6 +48,10 @@ class Controller {
 
     this._timer += this._baseFrequency_ms/ 1000;
     this.updateTimerOnScreen();
+
+    this.endTime = new Date().getTime();
+    console.log('Controller.execute() time =',
+        this.endTime - this.startTime, 'ms');
   }
 
   updateLayerNumber() {

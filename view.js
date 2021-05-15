@@ -3,9 +3,10 @@ class View {
     this._canvas = canvas;
     this._width = canvas.width;
     this._height = canvas.height;
+    this._idCounter = 0;
     this._scale = 50;
-    this._shapes = [];
-    this._fixedShapes = ['Grid', 'Ego', 'Goal', 'Obstacle'];
+    this._shapes = new Map();
+    this._fixedShapes = new Set(['Grid', 'Obstacle', 'Goal', 'Ego']);
     this._ego = null;
     this._lastEgo = null;
     this._lastMovedEgo = null;
@@ -18,6 +19,7 @@ class View {
     this._canvas.on('mouse:move', Listener.mouseMoveListener);
     this._canvas.on('mouse:up', Listener.mouseUpListener);
 
+    this.initMap();
     this.updateScale();
     this.createGrid();
     this.constructEgoShape();
@@ -25,39 +27,43 @@ class View {
     this.addShape(this.constructObstacle());
   }
 
+  initMap() {
+    this._fixedShapes.forEach((name) => {
+      this._shapes.set(name, []);
+    });
+  }
+
   reset() {
-    let end = this._shapes.length;
-    for (let i=0; i<end; ++i) {
-      const found = this._fixedShapes.find((element) => {
-        return element == this._shapes[i].name;
-      });
-      if (typeof found === 'undefined') {
-        this._shapes.splice(i, 1);
-        i--;
-        end--;
+    this._shapes.forEach((shapes, name, self) => {
+      if (!this._fixedShapes.has(name)) {
+        self.delete(name);
       }
-    }
+    });
 
     this._ego.left = this._lastMovedEgo.left;
     this._ego.top = this._lastMovedEgo.top;
     this._ego.angle = this._lastMovedEgo.angle;
     this.updateAllShapesToNewEgo();
 
-    this.draw();
+    this.redraw();
   }
 
-  draw() {
+  redraw() {
     this._canvas.clear();
 
-    this._shapes.forEach((item) => {
-      this._canvas.add(item.fabricObject);
+    this._shapes.forEach((group) => {
+      group.forEach((shape) => {
+        this._canvas.add(shape.fabricObject);
+      });
     });
   }
 
   bringFixedShapesInFront() {
-    this.getShapeByName('Obstacle')[0].fabricObject.bringToFront();
-    this.getShapeByName('Goal')[0].fabricObject.bringToFront();
-    this.getShapeByName('Ego')[0].fabricObject.bringToFront();
+    this._fixedShapes.forEach((name) => {
+      this.getListOfShapesByName(name).forEach((shape) => {
+        shape.fabricObject.bringToFront();
+      });
+    });
   }
 
   updateEgo(origin, state) {
@@ -75,18 +81,35 @@ class View {
   }
 
   setPreviousTrajectoriesInactive() {
-    this._shapes.forEach((item) => {
-      if (item.name === 'Trajectory') {
-        item.fabricObject.forEachObject((obj) => {
-          obj.set({fill: colorMap.get('inactive'), radius: 1});
-        });
-      } else if (item.name === 'ChosenTrajectory') {
-        item.fabricObject.set({opacity: 0});
-      }
+    if (!this._shapes.has('TrajectoryInactive')) {
+      this._shapes.set('TrajectoryInactive', []);
+    }
+
+    if (!this._shapes.has('TrajectoryActive')) {
+      this._shapes.set('TrajectoryActive', []);
+    }
+
+    const activeTrajectories = this._shapes.get('TrajectoryActive');
+    const inactiveTrajectories = this._shapes.get('TrajectoryInactive');
+    activeTrajectories.forEach((shape) => {
+      shape.fabricObject.forEachObject((obj) => {
+        obj.set({fill: colorMap.get('inactive'), radius: 1});
+      });
+      inactiveTrajectories.push(shape);
     });
+    activeTrajectories.length = 0;
+
+    if (!this._shapes.has('ChosenTrajectory')) {
+      this._shapes.set('ChosenTrajectory', []);
+    }
+    const chosenTrajectory = this._shapes.get('ChosenTrajectory');
+    chosenTrajectory.forEach((shape) => {
+      this._canvas.remove(shape.fabricObject);
+    });
+    chosenTrajectory.splice(0, chosenTrajectory.length);
   }
 
-  drawTrajectory(trajectory, color, size, type, name = 'Trajectory') {
+  drawTrajectory(trajectory, color, size, type, name = 'TrajectoryActive') {
     const objects = [];
 
     trajectory.segments.forEach((segment) => {
@@ -264,110 +287,76 @@ class View {
         this._grid.object));
   }
 
-  updateShape(shape) {
-    const match = this.getShapeByName(shape.name);
-
-    if (match[0] == null) {
-      this.addShape(shape);
-    } else {
-      this._shapes[match[1]] = shape;
-      this.draw();
-    }
-  }
-
   addShape(shape) {
-    this._shapes.push(shape);
+    if (this._shapes.has(shape.name)) {
+      this._shapes.get(shape.name).push(shape);
+    } else {
+      this._shapes.set(shape.name, [shape]);
+    }
+
     this._canvas.add(shape.fabricObject);
   }
 
-  removeShape(shape) {
-    this._shapes.forEach((item, index, self) => {
-      if (item.id == shape.id) {
-        self.splice(index, 1);
-      }
-    });
-  }
-
-  getShapeByName(name) {
-    let match = null;
-    let index = -1;
-    this._shapes.forEach((item, idx) => {
-      if (item.name == name) {
-        match = item;
-        index = idx;
-      }
-    });
-    return [match, index];
-  }
-
-  getObjectByName(name) {
-    return this.getShapeByName(name)[0].object;
-  }
-
-  getLastId() {
-    if (this._shapes.length == 0) {
-      return 0;
+  getListOfShapesByName(name) {
+    if (this._shapes.has(name)) {
+      return this._shapes.get(name);
     } else {
-      return this._shapes[this._shapes.length - 1].id;
+      return [];
     }
   }
 
+  getObjectByName(name) {
+    return this.getListOfShapesByName(name)[0].object;
+  }
+
   getNextId() {
-    return this.getLastId() + 1;
+    return this._idCounter++;
   }
 
   updateAllShapesToNewEgo() {
-    this._shapes.forEach((shape) => {
-      if (shape.name === 'Obstacle' || shape.name === 'Goal') {
-        let newEgo = new BasicObject(this._ego.left, this._ego.top,
-            this._ego.angle);
-
-        newEgo = Utils.transformObjectToUsk(this._lastEgo, newEgo);
-
-        const xShift = newEgo.x/ this._scale;
-        const yShift = newEgo.y/ this._scale;
-        const theta = (this._ego.angle - this._lastEgo.angle) * Math.PI / 180;
-
-        const newX = shape.object.x - xShift;
-        const newY = shape.object.y - yShift;
-
-        const res = Utils.rotatePoint(newX, newY, theta);
-        shape.object.x = res[0];
-        shape.object.y = res[1];
-        shape.object.angle = shape.object.angle - theta;
-      }
-    });
+    this.updateShapeToNewEgo('Obstacle');
+    this.updateShapeToNewEgo('Goal');
 
     this._lastEgo = Object.assign({}, this._ego);
   }
 
+  updateShapeToNewEgo(name) {
+    const shape = this._shapes.get(name)[0];
+    let newEgo = new BasicObject(this._ego.left, this._ego.top,
+        this._ego.angle);
+
+    newEgo = Utils.transformObjectToUsk(this._lastEgo, newEgo);
+
+    const xShift = newEgo.x/ this._scale;
+    const yShift = newEgo.y/ this._scale;
+    const theta = (this._ego.angle - this._lastEgo.angle) * Math.PI / 180;
+
+    const newX = shape.object.x - xShift;
+    const newY = shape.object.y - yShift;
+
+    const res = Utils.rotatePoint(newX, newY, theta);
+    shape.object.x = res[0];
+    shape.object.y = res[1];
+    shape.object.angle = shape.object.angle - theta;
+  }
+
   objectMovedUpdate(target) {
-    this._shapes.forEach((shape) => {
-      if (shape.fabricObject == target) {
-        switch (shape.name) {
-          case 'Ego':
-            this._lastMovedEgo = Object.assign({}, this._ego);
-            break;
-          case 'Goal': {
-            const newObj = new BasicObject(target.left, target.top,
-                target.angle);
-            Utils.transformObjectToUsk(this._ego, newObj);
-            Utils.convertToMetric(this._scale, newObj);
-            Object.assign(shape.object, newObj);
-            break;
-          }
-          case 'Obstacle': {
-            const newObj = new Obstacle(target.left, target.top, target.angle,
-                target.width * target.scaleX, target.height * target.scaleY);
-            Utils.transformObjectToUsk(this._ego, newObj);
-            Utils.convertToMetric(this._scale, newObj);
-            Object.assign(shape.object, newObj);
-            // TODO: Utils.updateDiagonalsRectangle(target);
-            break;
-          }
-        }
-      }
-    });
+    if (this._shapes.get('Ego')[0].fabricObject == target) {
+      this._lastMovedEgo = Object.assign({}, this._ego);
+    } else if (this._shapes.get('Goal')[0].fabricObject == target) {
+      const newObj = new BasicObject(target.left, target.top,
+          target.angle);
+      Utils.transformObjectToUsk(this._ego, newObj);
+      Utils.convertToMetric(this._scale, newObj);
+      Object.assign(this._shapes.get('Goal')[0].object, newObj);
+    } else if (this._shapes.get('Obstacle')[0].fabricObject) {
+      const newObj = new Obstacle(target.left, target.top, target.angle,
+          target.width * target.scaleX, target.height * target.scaleY);
+      Utils.transformObjectToUsk(this._ego, newObj);
+      Utils.convertToMetric(this._scale, newObj);
+      Object.assign(this._shapes.get('Obstacle')[0].object, newObj);
+      // TODO: Utils.updateDiagonalsRectangle(target);
+    }
 
     view.reset();
     controller.reset();
@@ -382,15 +371,16 @@ class View {
       document.getElementById('scale').value = '10';
     }
 
-    this._shapes.forEach((shape) => {
-      if (shape.name === 'Obstacle' || shape.name === 'Goal') {
-        shape.object.rescale(oldScale, newScale);
-      }
+    this._shapes.get('Obstacle').forEach((shape) => {
+      shape.object.rescale(oldScale, newScale);
+    });
+    this._shapes.get('Goal').forEach((shape) => {
+      shape.object.rescale(oldScale, newScale);
     });
 
     if (this._grid != null) {
       this._grid.rescale(newScale);
-      this.draw();
+      this.reset();
     }
 
     this._scale = newScale;
