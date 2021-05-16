@@ -27,7 +27,8 @@ class State {
   constructor() {
     this.x = 0;
     this.y = 0;
-    this.theta = 0;
+    this.angle = 0;
+    this.steeringAngle = 0;
     this.v = 0;
     this.t = 0;
     this.isColliding = false;

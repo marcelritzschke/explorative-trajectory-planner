@@ -60,6 +60,7 @@ class Controller {
   createInitialState() {
     const state = new State();
     state.v = this._activeState.v;
+    state.steeringAngle = this._activeState.steeringAngle;
     return state;
   }
 

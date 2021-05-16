@@ -3,11 +3,12 @@ class Explorer {
   constructor(goal, obstacles) {
     this._goal = goal;
     this._obstacles = obstacles;
-    this._timestep = 2;
+    this._wheelBase = 2.62;
+    this._timestep = 2.;
     this._intertime = 0.2;
     this._intersteps = this._timestep/ this._intertime;
     this._steeringAngles = [-.6, -.3, .0, .3, .6];
-    this._velocities = [-1, 0., 1.];
+    this._velocities = [.0, 1.];
     this._segments = [];
     this._trajectories = [];
     this._initialState = new State();
@@ -110,11 +111,11 @@ class Explorer {
     return colliding;
   }
 
-  calculateStates(initialState, theta, veloctity) {
+  calculateStates(initialState, steeringAngle, veloctity) {
     const states = [initialState];
     for (let i = 0; i < this._intersteps; i++) {
-      const angle = (i+1) / this._intersteps *
-          (theta - initialState.theta) + initialState.theta;
+      const angle = (i+1) / this._intersteps * (steeringAngle -
+          initialState.steeringAngle) + initialState.steeringAngle;
       const vel = (i+1) / this._intersteps *
           (veloctity - initialState.v) + initialState.v;
 
@@ -127,12 +128,31 @@ class Explorer {
     return states;
   }
 
-  calculateCrookedMove(prevState, theta, veloctity) {
+  /**
+   * Calculating the next vehicle state by assuming a single track model.
+   * Means the radius of the curve is calculated by r = wheelBase /
+   * sin(steeringAngle). The x and y coordinates are then calculated from
+   * x = r * cos(wt) and y = r * sin(wt) with w = v / r. The direction change
+   * is phi = w * t = v * t / r.
+   * @param {State} prevState Used to add up the values
+   * @param {number} steeringAngle Steering angle of tire
+   * @param {number} veloctity Current constant velocity
+   * @return {State}
+   */
+  calculateCrookedMove(prevState, steeringAngle, veloctity) {
+    const r = this._wheelBase / Math.sin(steeringAngle);
+
     const newState = Object.assign({}, prevState);
-    newState.x += veloctity * this._intertime * Math.cos(prevState.theta);
-    newState.y += veloctity * this._intertime * Math.sin(prevState.theta);
-    // TODO: figure out how this works!
-    newState.theta += 0.1 * theta * veloctity;
+    newState.x = r * Math.sin(veloctity * this._intertime / r);
+    newState.y = r * Math.cos(veloctity * this._intertime / r) - r;
+
+    // TODO: The following might be merged with the formulas above.
+    const res = Utils.rotatePoint(newState.x, newState.y, prevState.angle);
+    newState.x = res[0] + prevState.x;
+    newState.y = res[1] + prevState.y;
+
+    newState.steeringAngle = steeringAngle;
+    newState.angle += -veloctity * this._intertime / r;
     newState.v = veloctity;
     newState.t += this._intertime;
     newState.isColliding |= this.isColliding(newState);
@@ -145,7 +165,10 @@ class Explorer {
 
   calculateStraightMove(prevState, veloctity) {
     const newState = Object.assign({}, prevState);
-    newState.x += veloctity * this._intertime;
+    newState.x += veloctity * this._intertime * Math.cos(prevState.angle);
+    newState.y += veloctity * this._intertime * Math.sin(prevState.angle);
+
+    newState.steeringAngle = 0;
     newState.v = veloctity;
     newState.t += this._intertime;
     newState.isColliding |= this.isColliding(newState);

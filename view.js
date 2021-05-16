@@ -82,7 +82,7 @@ class View {
 
     this._ego.left = newPosition.x;
     this._ego.top = newPosition.y;
-    this._ego.angle = newPosition.theta;
+    this._ego.angle = newPosition.angle;
     this.updateAllShapesToNewEgo();
     this.bringFixedShapesInFront();
   }
@@ -362,15 +362,15 @@ class View {
 
       const xShift = newEgo.x/ this._scale;
       const yShift = newEgo.y/ this._scale;
-      const theta = (this._ego.angle - this._lastEgo.angle) * Math.PI / 180;
+      const angle = (this._ego.angle - this._lastEgo.angle) * Math.PI / 180;
 
       const newX = shape.object.x - xShift;
       const newY = shape.object.y - yShift;
 
-      const res = Utils.rotatePoint(newX, newY, theta);
+      const res = Utils.rotatePoint(newX, newY, angle);
       shape.object.x = res[0];
       shape.object.y = res[1];
-      shape.object.angle = shape.object.angle - theta;
+      shape.object.angle = shape.object.angle - angle;
     });
   }
 

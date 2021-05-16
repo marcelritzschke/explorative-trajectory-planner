@@ -52,8 +52,10 @@ class Motion {
     const state = new State();
     state.x = this.linearInterpolate(fraction, stateFirst.x, stateSecond.x);
     state.y = this.linearInterpolate(fraction, stateFirst.y, stateSecond.y);
-    state.theta = this.linearInterpolate(fraction, stateFirst.theta,
-        stateSecond.theta);
+    state.angle = this.linearInterpolate(fraction,
+        stateFirst.angle, stateSecond.angle);
+    state.steeringAngle = this.linearInterpolate(fraction,
+        stateFirst.steeringAngle, stateSecond.steeringAngle);
     state.v = this.linearInterpolate(fraction, stateFirst.v, stateSecond.v);
     state.t = this.linearInterpolate(fraction, stateFirst.t, stateSecond.t);
     state.isColliding = stateSecond.isColliding;

@@ -3,13 +3,13 @@ const Utils = {
   transformObjectToUsk(ego, object) {
     const x = object.x;
     const y = object.y;
-    const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
+    const angle = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
 
     let newX = x - ego.left;
     let newY = y - ego.top;
     newY *= -1;
 
-    const res = this.rotatePoint(newX, newY, theta);
+    const res = this.rotatePoint(newX, newY, angle);
     newX = res[0];
     newY = res[1];
 
@@ -23,9 +23,9 @@ const Utils = {
   getStateInGlobalSystem(ego, state) {
     const x = state.x;
     const y = -state.y;
-    const theta = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
+    const angle = ego.angle * Math.PI / 180 - 90 * Math.PI / 180;
 
-    const res = this.rotatePoint(x, y, theta);
+    const res = this.rotatePoint(x, y, angle);
     let newX = res[0];
     let newY = res[1];
 
@@ -34,7 +34,7 @@ const Utils = {
 
     state.x = newX;
     state.y = newY;
-    state.theta = (ego.angle - state.theta / Math.PI * 180);
+    state.angle = (ego.angle - state.angle / Math.PI * 180);
 
     return state;
   },
