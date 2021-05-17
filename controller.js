@@ -12,7 +12,11 @@ class Controller {
     this._activeState = new State();
 
     this.updateLayerNumber();
+    this.updateTimestep();
+    this.updateIntertime();
     this.updateDrawExploration();
+    this.updateVelocities();
+    this.updateSteeringAngles();
   }
 
   step() {
@@ -70,12 +74,60 @@ class Controller {
   }
 
   updateLayerNumber() {
-    this._layerTotalNumber = document.getElementById('layerNumber').value;
+    this._layerTotalNumber =
+        parseInt(document.getElementById('layerNumber').value);
+  }
+
+  updateBaseFrequency() {
+    window.clearInterval(this._intervalHandler);
+    this._baseFrequency_ms =
+        parseFloat(document.getElementById('baseFrequency').value) * 1000;
+    this._intervalHandler = window.setInterval(() => this.execute(),
+        this._baseFrequency_ms);
+  }
+
+  updateExplorationFrequency() {
+    this._plannerFrequency_ms = parseFloat(
+        document.getElementById('explorationFrequency').value) * 1000;
+  }
+
+  updateTimestep() {
+    this._planner.timestep =
+        parseFloat(document.getElementById('timestep').value);
+  }
+
+  updateIntertime() {
+    this._planner.intertime =
+        parseFloat(document.getElementById('intertime').value);
   }
 
   updateDrawExploration() {
     this._planner.drawExploration =
         document.getElementById('drawExploration').checked;
+  }
+
+  updateVelocities() {
+    const input = document.getElementById('velocities').value;
+    const values = input.split(' ');
+
+    const velocities = [];
+    for (const value of values) {
+      velocities.push(parseFloat(value));
+    }
+
+    this._planner.velocities = velocities;
+  }
+
+  updateSteeringAngles() {
+    const input = document.getElementById('steeringAngles').value;
+    const values = input.split(' ');
+
+    const steeringAngles = [];
+    for (const value of values) {
+      steeringAngles.push(parseFloat(value) * Math.PI / 180);
+    }
+
+    this._planner.steeringAngles = steeringAngles;
   }
 
   updateTimerOnScreen() {

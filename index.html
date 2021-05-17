@@ -5,7 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explorative Trajectory Planner</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style/buttons.css">
+    <link rel="stylesheet" href="style/style.css">
+    <script src="utils/toggleSettingsButton.js"></script>
     <script src="bower_components/fabric.js/dist/fabric.js"></script>
     <script src="listener.js"></script>
     <script src="datatypes.js"></script>
@@ -21,27 +23,10 @@
     <header>
 
     </header>
-    <section class="settings-description">
-        <span class="input">Scale (Pixels/Meter): 
-            <input id="scale" type="text" value="50" type="text" onchange="view.updateScale()"/>
-        </span>
-        <span class="">Layers:
-            <select class="dropdown" id="layerNumber" onchange="controller.updateLayerNumber()">
-                <option value="1">1</option>
-                <option value="2" selected>2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-            </select>
-        </span>
-        <span class="input">Obstacles: 
-            <input id="obstacles" type="text" value="1" type="text" onchange="controller.updateObstacles()"/>
-        </span>
-        <span class="input">Draw Exploration: 
-            <input id="drawExploration" type="checkbox" checked onchange="controller.updateDrawExploration()"/>
-        </span>
-    </section>
     <section class="control-section">
+        <div onclick="toggleSettings()">
+            <label for="settingsToggle" id="settingsButton" class="settingsbutton">☰</label>
+        </div>
         <div class="control">
             <div onclick="controller.step()" class="step-button"></div>
             <div onclick="controller.play()" class="play-button"></div>
@@ -50,8 +35,50 @@
         </div>
         <div id="timer" class="timer">00:00:000</div>
     </section>
+    
     <section class="container">
-        <canvas id="mainView" class="canvas"></canvas>
+        <input id="settingsToggle" type="checkbox" />
+        <div class="settings">        
+            <div class="input">Scale (Pixels/Meter): 
+                <input id="scale" type="text" value="50" type="text" onchange="view.updateScale()"/>
+            </div>
+            <div class="">Layers:
+                <select class="dropdown" id="layerNumber" onchange="controller.updateLayerNumber()">
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <div class="input">Velocities (m/s): 
+                <input id="velocities" type="controls" value="0 1" onchange="controller.updateVelocities()"/>
+            </div>
+            <div class="input">Steering Angles (°): 
+                <input id="steeringAngles" type="controls" value="-30 -15 0 15 30"
+                    width="200" onchange="controller.updateSteeringAngles()"/>
+            </div>
+            <div class="input">Base Frequency (s): 
+                <input id="baseFrequency" type="text" value="0.05" type="text" onchange="controller.updateBaseFrequency()"/>
+            </div>
+            <div class="input">Exploration Frequency (s): 
+                <input id="explorationFrequency" type="text" value="1.5" type="text" onchange="controller.updateExplorationFrequency()"/>
+            </div>
+            <div class="input">Layer Length (s): 
+                <input id="timestep" type="text" value="2" type="text" onchange="controller.updateTimestep()"/>
+            </div>
+            <div class="input">Interpolation (s): 
+                <input id="intertime" type="text" value="0.2" type="text" onchange="controller.updateIntertime()"/>
+            </div>
+            <div class="input">Obstacles: 
+                <input id="obstacles" type="text" value="1" type="text" onchange="controller.updateObstacles()"/>
+            </div>
+            <div class="input">Draw Exploration: 
+                <input id="drawExploration" type="checkbox" checked onchange="controller.updateDrawExploration()"/>
+            </div>
+        </div>
+        <div>
+            <canvas id="mainView" class="canvas"></canvas>
+        </div>
     </section>
     <footer></footer>
 </body>

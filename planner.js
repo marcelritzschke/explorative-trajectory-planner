@@ -9,8 +9,24 @@ class Planner {
     return this._lastTrajectory;
   }
 
+  set timestep(value) {
+    this._explorer.timestep = value;
+  }
+
+  set intertime(value) {
+    this._explorer.intertime = value;
+  }
+
   set drawExploration(value) {
     this._drawExploration = value;
+  }
+
+  set velocities(value) {
+    this._explorer.velocities = value;
+  }
+
+  set steeringAngles(value) {
+    this._explorer.steeringAngles = value;
   }
 
   reset() {

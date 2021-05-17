@@ -6,12 +6,27 @@ class Explorer {
     this._wheelBase = 2.62;
     this._timestep = 2.;
     this._intertime = 0.2;
-    this._intersteps = this._timestep/ this._intertime;
     this._steeringAngles = [-.6, -.3, .0, .3, .6];
     this._velocities = [.0, 1.];
     this._segments = [];
     this._trajectories = [];
     this._initialState = new State();
+  }
+
+  set timestep(value) {
+    this._timestep = value;
+  }
+
+  set intertime(value) {
+    this._intertime = value;
+  }
+
+  set velocities(value) {
+    this._velocities = value;
+  }
+
+  set steeringAngles(value) {
+    this._steeringAngles = value;
   }
 
   reset() {
@@ -112,11 +127,12 @@ class Explorer {
   }
 
   calculateStates(initialState, steeringAngle, veloctity) {
+    const intersteps = this._timestep/ this._intertime;
     const states = [initialState];
-    for (let i = 0; i < this._intersteps; i++) {
-      const angle = (i+1) / this._intersteps * (steeringAngle -
+    for (let i = 0; i < intersteps; i++) {
+      const angle = (i+1) / intersteps * (steeringAngle -
           initialState.steeringAngle) + initialState.steeringAngle;
-      const vel = (i+1) / this._intersteps *
+      const vel = (i+1) / intersteps *
           (veloctity - initialState.v) + initialState.v;
 
       if (Math.abs(angle) < Number.EPSILON) {
