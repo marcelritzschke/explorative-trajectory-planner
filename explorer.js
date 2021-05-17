@@ -10,6 +10,7 @@ class Explorer {
     this._velocities = [.0, 1.];
     this._segments = [];
     this._trajectories = [];
+    this._goalTolerance = 1.;
     this._initialState = new State();
   }
 
@@ -103,8 +104,8 @@ class Explorer {
       const y = this._goal.y - trajectory.lastSegment.lastState.y;
       const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
       trajectory.cost += distance;
-      
-      if (distance <= 1) { //TODO add parameter
+
+      if (distance <= this._goalTolerance) {
         trajectory.isReachGoal = true;
       }
     });
