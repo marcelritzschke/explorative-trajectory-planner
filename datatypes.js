@@ -36,6 +36,36 @@ class State {
 }
 
 // eslint-disable-next-line no-unused-vars
+class CarShape {
+  constructor() {
+    this.width = 1.79/ 2;
+    this.length = 4.28/ 2;
+    this.safetyDistance = .2;
+  }
+
+  getCorners(state) {
+    const length = this.length / 2 + this.safetyDistance;
+    const width = this.width / 2 + this.safetyDistance;
+    const corners = [
+      new Pose(length, width),
+      new Pose(length, -width),
+      new Pose(-length, width),
+      new Pose(-length, -width),
+    ];
+
+    for (const corner of corners) {
+      corner.x += this.safetyDistance;
+      corner.y += this.safetyDistance;
+      const res = Utils.rotatePoint(corner.x, corner.y, state.angle);
+      corner.x = res[0] + state.x;
+      corner.y = res[1] + state.y;
+    }
+
+    return corners;
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
 class Trajectory {
   constructor() {
     this.segments = [];

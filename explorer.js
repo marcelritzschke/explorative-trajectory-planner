@@ -3,7 +3,7 @@ class Explorer {
   constructor(goal, obstacles) {
     this._goal = goal;
     this._obstacles = obstacles;
-    this._wheelBase = 2.62;
+    this._wheelBase = 2.64 / 2;
     this._timestep = 2.;
     this._intertime = 0.2;
     this._steeringAngles = [-.6, -.3, .0, .3, .6];
@@ -121,7 +121,10 @@ class Explorer {
   isColliding(state) {
     let colliding = false;
     for (const obstacle of this._obstacles) {
-      colliding |= obstacle.isColliding(state);
+      const corners = new CarShape().getCorners(state);
+      for (const corner of corners) {
+        colliding |= obstacle.isColliding(corner);
+      }
     }
     return colliding;
   }

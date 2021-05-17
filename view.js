@@ -8,6 +8,7 @@ class View {
     this._shapes = new Map();
     this._fixedShapes = new Set(['Grid', 'Obstacle', 'Goal', 'Ego']);
     this._ego = null;
+    this._car = new CarShape();
     this._lastEgo = null;
     this._lastMovedEgo = null;
     this._grid = null;
@@ -292,8 +293,8 @@ class View {
     });
 
     const car = new fabric.Rect({
-      width: 20,
-      height: 40,
+      width: this._car.width * this._scale,
+      height: this._car.length * this._scale,
       fill: 'white',
       stroke: colorMap.get('ego'),
       strokeWidth: 2,

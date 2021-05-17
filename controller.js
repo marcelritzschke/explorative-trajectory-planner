@@ -11,12 +11,7 @@ class Controller {
     this._step = 0;
     this._activeState = new State();
 
-    this.updateLayerNumber();
-    this.updateTimestep();
-    this.updateIntertime();
-    this.updateDrawExploration();
-    this.updateVelocities();
-    this.updateSteeringAngles();
+    this.reset();
   }
 
   step() {
@@ -37,6 +32,12 @@ class Controller {
     this._timer = 0;
     this._planner.reset();
     this.updateTimerOnScreen();
+    this.updateLayerNumber();
+    this.updateTimestep();
+    this.updateIntertime();
+    this.updateDrawExploration();
+    this.updateVelocities();
+    this.updateSteeringAngles();
   }
 
   execute() {
