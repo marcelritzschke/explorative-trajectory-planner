@@ -226,13 +226,20 @@ class View {
       width: width,
       height: height,
       angle: angle,
-      fill: '',
+      fill: 'rgb(0,0,0,.2)',
       originX: 'center',
       originY: 'center',
       stroke: colorMap.get('obstacle'),
       strokeWidth: 2,
     });
-    const filledRect = Utils.fillRectangleWithDiagonals(rect);
+    const lines = Utils.getDiagonalsOfRectangle(rect);
+    const filledRect = new fabric.Group(lines, {
+      left: rect.left,
+      top: rect.top,
+      originX: 'center',
+      originY: 'center',
+    });
+    filledRect.addWithUpdate(rect);
 
     let object = new Obstacle(filledRect.left, filledRect.top, filledRect.angle,
         filledRect.width, filledRect.height);
@@ -391,7 +398,7 @@ class View {
           Utils.transformObjectToUsk(this._ego, newObj);
           Utils.convertToMetric(this._scale, newObj);
           Object.assign(shape.object, newObj);
-          // TODO: Utils.updateDiagonalsRectangle(target);
+          Utils.updateDiagonalsRectangle(target);
         }
       });
     }

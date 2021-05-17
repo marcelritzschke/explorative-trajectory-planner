@@ -48,46 +48,49 @@ const Utils = {
   },
 
   updateDiagonalsRectangle(rect) {
-    // TODO: figure out, maybe use scale ?
+    const angleBuf = rect.angle;
     const xBuf = rect.left;
     const yBuf = rect.top;
-    console.log(rect);
-    console.log(rect.item(0));
+
     const newRect = new fabric.Rect({
-      left: rect.item(0).left,
-      top: rect.item(0).top,
-      width: rect.width * rect.scaleX,
-      height: rect.height * rect.scaleY,
-      angle: rect.angle,
-      fill: '',
+      left: rect.left,
+      top: rect.top,
+      width: (rect.width - 2) * rect.scaleX,
+      height: (rect.height - 2) * rect.scaleY,
+      angle: 0,
+      fill: 'rgb(0,0,0,.2)',
       originX: 'center',
       originY: 'center',
       stroke: 'black',
       strokeWidth: 2,
     });
 
-    const newGroup = this.fillRectangleWithDiagonals(newRect);
-    rect.forEachObject((obj) => {
-      rect.remove(obj);
-    });
-    newGroup.forEachObject((obj) => {
-      rect.addWithUpdate(obj);
-    });
-    rect.left = xBuf;
-    rect.top = yBuf;
-  },
-
-  fillRectangleWithDiagonals(rect, gap = 10) {
-    const width = rect.width * rect.scaleX;
-    const height = rect.height * rect.scaleY;
-
-    const group = new fabric.Group([rect], {
+    const lines = this.getDiagonalsOfRectangle(newRect);
+    const group = new fabric.Group(lines, {
       left: rect.left,
       top: rect.top,
       originX: 'center',
       originY: 'center',
     });
+    group.addWithUpdate(newRect);
 
+    rect.forEachObject((obj) => {
+      rect.remove(obj);
+    });
+    group.forEachObject((obj) => {
+      rect.addWithUpdate(obj);
+    });
+
+    rect.angle = angleBuf;
+    rect.left = xBuf;
+    rect.top = yBuf;
+  },
+
+  getDiagonalsOfRectangle(rect, gap = 10) {
+    const width = rect.width * rect.scaleX;
+    const height = rect.height * rect.scaleY;
+
+    const lines = [];
     const lengthToGo = (width + height)/ Math.sin(45 * Math.PI / 180);
     for (let i=0; i<lengthToGo/ gap; i++) {
       const dist = i * gap * Math.sin(45 * Math.PI / 180);
@@ -128,15 +131,16 @@ const Utils = {
           rect.angle * Math.PI/ 180);
 
       const line = new fabric.Line([
-        start[0] + group.left,
-        start[1] + group.top,
-        end[0] + group.left,
-        end[1] + group.top],
-      {type: 'line', stroke: 'black'});
-      group.addWithUpdate(line);
+        start[0],
+        start[1],
+        end[0],
+        end[1]],
+      {type: 'line', stroke: 'lightgrey'});
+
+      lines.push(line);
     }
 
-    return group;
+    return lines;
   },
 
   convertToPixels(scale, object) {
