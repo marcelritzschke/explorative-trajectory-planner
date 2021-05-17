@@ -74,29 +74,25 @@ header {
     visibility: visible;
 }   
 .settings {
+    width: 200px;
+    height: 90%;
     position: fixed;
     z-index: 1;
-    visibility: collapse;
-    border-right: 1px solid rgb(5, 46, 107);
+    visibility: hidden;
+    border: 1px solid rgb(5, 46, 107);
+    border-radius: 5px;
     font-size: small;
     font-family: 'Helvetica';
-    color: white;
-    background: rgb(5, 46, 107);
-    margin: 0;
-    padding: 5px;
-}
-.dropdown {
-    font-size: small;
-    width: 35px;
-    height: 17px;
-    margin: 5px;
-    border: 1px solid rgb(5, 46, 107);
+    font-weight: bolder;
     color: rgb(5, 46, 107);
-    background-color: rgb(255, 255, 255);
-    border-radius: 0px;
+    background: rgb(255, 255, 255);
+    margin-top: 0px;
+    padding: 0;
+    overflow-y: auto;
 }
 input[type="text"] {
-    font-size: small;
+    font-size: smaller;
+    text-align: center;
     width: 35px;
     padding: 0px;
     margin: 5px;
@@ -107,7 +103,8 @@ input[type="text"] {
     background-color: rgb(255, 255, 255);
 }
 input[type="controls"] {
-    font-size: small;
+    font-size: smaller;
+    text-align: center;
     width: 100px;
     padding: 0px;
     margin: 5px;
@@ -115,6 +112,17 @@ input[type="controls"] {
     border: 1px solid rgb(5, 46, 107);
     color: rgb(5, 46, 107);
     background-color: rgb(255, 255, 255);
+}
+input[type="range"] {
+    cursor: pointer;
+}
+.inputText {
+    margin: 5px 5px 0px 5px;
+    text-align: center;
+}
+.inputSlider {
+    margin: 0px 5px 5px 5px;
+    text-align: center;
 }
 .canvas {
     width: 100%;

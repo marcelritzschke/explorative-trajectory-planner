@@ -18,6 +18,13 @@
     <script src="planner.js"></script>
     <script src="motion.js"></script>
     <script src="controller.js"></script>
+    <script>
+        function applySliderValue(element) {
+            const value = document.getElementById(element).value;
+            document.getElementById(element + 'Value').innerHTML = value;
+        }
+        
+    </script>
 </head>
 <body onload="initializeView(); initializePlanner(); initializeMotion(); initializeController()">
     <header>
@@ -39,40 +46,69 @@
     <section class="container">
         <input id="settingsToggle" type="checkbox" />
         <div class="settings">        
-            <div class="input">Scale (Pixels/Meter): 
-                <input id="scale" type="text" value="20" type="text" onchange="view.updateScale()"/>
+            <div class="inputText">
+                <span style="font-size:x-small;">Scale (Pixels/Meter): </span>
+                <span id="scaleValue" style="font-size:smaller;">20</span>
             </div>
-            <div class="">Layers:
-                <select class="dropdown" id="layerNumber" onchange="controller.updateLayerNumber()">
-                    <option value="1">1</option>
-                    <option value="2" selected>2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                </select>
+            <div class="inputSlider">
+                <input id="scale" type="range" min="10" max ="100" step="10"
+                    value="20" onchange="view.updateScale();" oninput="applySliderValue('scale');" />
             </div>
-            <div class="input">Velocities (m/s): 
+            <div class="inputText">
+                <span style="font-size:x-small;">Layers: </span>
+                <span id="layerNumberValue" style="font-size:smaller;">2</span>
+            </div>
+            <div class="inputSlider">
+                <input id="layerNumber" type="range" min="1" max ="4" step="1"
+                    value="2" onchange="controller.updateLayerNumber()" oninput="applySliderValue('layerNumber');" />
+            </div>
+            <div class="inputText">
+                <span style="font-size:x-small;">Base Frequency (s): </span>
+                <span id="baseFrequencyValue" style="font-size:smaller;">0.05</span>
+            </div>
+            <div class="inputSlider">
+                <input id="baseFrequency" type="range" min=".01" max =".1" step=".01"
+                    value=".05" onchange="controller.updateBaseFrequency()" oninput="applySliderValue('baseFrequency');" />
+            </div>
+            <div class="inputText">
+                <span style="font-size:x-small;">Exploration Frequency (s): </span>
+                <span id="explorationFrequencyValue" style="font-size:smaller;">1.5</span>
+            </div>
+            <div class="inputSlider">
+                <input id="explorationFrequency" type="range" min=".1" max ="3" step=".1"
+                    value="1.5" onchange="controller.updateExplorationFrequency()" oninput="applySliderValue('explorationFrequency');" />
+            </div>
+            <div class="inputText">
+                <span style="font-size:x-small;">Layer Length (s): </span>
+                <span id="timestepValue" style="font-size:smaller;">2</span>
+            </div>
+            <div class="inputSlider">
+                <input id="timestep" type="range" min=".5" max ="5" step=".5"
+                    value="2" onchange="controller.updateTimestep()" oninput="applySliderValue('timestep');" />
+            </div>
+            <div class="inputText">
+                <span style="font-size:x-small;">Interpolation (s): </span>
+                <span id="intertimeValue" style="font-size:smaller;">0.2</span>
+            </div>
+            <div class="inputSlider">
+                <input id="intertime" type="range" min=".05" max ="1" step=".05"
+                    value=".2" onchange="controller.updateIntertime()" oninput="applySliderValue('intertime');" />
+            </div>
+            <div class="inputText" style="font-size:x-small;">Velocities (m/s)</div>
+            <div class="inputSlider">
                 <input id="velocities" type="controls" value="0 1" onchange="controller.updateVelocities()"/>
             </div>
-            <div class="input">Steering Angles (°): 
+            <div class="inputText" style="font-size:x-small;">Steering Angles (°)</div>
+            <div class="inputSlider">
                 <input id="steeringAngles" type="controls" value="-30 -15 0 15 30"
                     width="200" onchange="controller.updateSteeringAngles()"/>
             </div>
-            <div class="input">Base Frequency (s): 
-                <input id="baseFrequency" type="text" value="0.05" type="text" onchange="controller.updateBaseFrequency()"/>
-            </div>
-            <div class="input">Exploration Frequency (s): 
-                <input id="explorationFrequency" type="text" value="1.5" type="text" onchange="controller.updateExplorationFrequency()"/>
-            </div>
-            <div class="input">Layer Length (s): 
-                <input id="timestep" type="text" value="2" type="text" onchange="controller.updateTimestep()"/>
-            </div>
-            <div class="input">Interpolation (s): 
-                <input id="intertime" type="text" value="0.2" type="text" onchange="controller.updateIntertime()"/>
-            </div>
-            <div class="input">Obstacles: 
+            <div class="inputText" style="font-size:x-small;">Obstacles</div>
+            <div class="inputSlider"> 
                 <input id="obstacles" type="text" value="1" type="text" onchange="controller.updateObstacles()"/>
             </div>
-            <div class="input">Draw Exploration: 
+            <div class="inputText" style="font-size:x-small;">Draw Exploration</div>
+            <div class="inputSlider">
                 <input id="drawExploration" type="checkbox" checked onchange="controller.updateDrawExploration()"/>
             </div>
         </div>

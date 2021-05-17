@@ -12,25 +12,27 @@ class Grid {
   }
 
   createGrid() {
-    const grid = new fabric.Group([], {
+    const lines = this.getLines();
+    const grid = new fabric.Group(lines, {
       selectable: false,
       evented: false,
       opacity: 0.25,
     });
-    this.addLinesToGrid(grid);
 
     return grid;
   }
 
-  addLinesToGrid(grid) {
+  getLines() {
+    const lines = [];
     const gridSize = this._scale;
     for (let i = 0; i < (this._width / gridSize); i++) {
-      grid.addWithUpdate(new fabric.Line([i * gridSize, 0, i * gridSize,
+      lines.push(new fabric.Line([i * gridSize, 0, i * gridSize,
         this._height], {type: 'line', stroke: colorMap.get('grid')}));
-      grid.addWithUpdate(new fabric.Line([0, i * gridSize,
+      lines.push(new fabric.Line([0, i * gridSize,
         this._width, i * gridSize], {type: 'line',
         stroke: colorMap.get('grid')}));
     }
+    return lines;
   }
 
   rescale(scale) {
@@ -38,6 +40,9 @@ class Grid {
       this._object.removeWithUpdate(obj);
     });
     this._scale = scale;
-    this.addLinesToGrid(this._object);
+    const lines = this.getLines();
+    lines.forEach((line) => {
+      this._object.addWithUpdate(line);
+    });
   }
 };
