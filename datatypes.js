@@ -72,6 +72,7 @@ class Trajectory {
     this.cost = 0;
     this.origin = [0, 0, 0];
     this.time = 0;
+    this.isReachGoal = false;
   }
 
   get lastSegment() {

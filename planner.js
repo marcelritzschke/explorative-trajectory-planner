@@ -38,6 +38,10 @@ class Planner {
   }
 
   calculateFinalTrajectory(timer) {
+    if (this._lastTrajectory.isReachGoal) {
+      return;
+    }
+
     this._lastTrajectory = this._explorer.getBestTrajectory();
     this._lastTrajectory.origin = this._view.getEgoPosition();
     this._lastTrajectory.time = timer;
@@ -48,6 +52,10 @@ class Planner {
 
   explore(initialState, layerTotalNumber) {
     const startTime = new Date().getTime();
+
+    if (this._lastTrajectory.isReachGoal) {
+      return;
+    }
 
     this._explorer.reset();
     this._explorer.setInitialState(initialState);

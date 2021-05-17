@@ -101,7 +101,12 @@ class Explorer {
     this._trajectories.forEach((trajectory) => {
       const x = this._goal.x - trajectory.lastSegment.lastState.x;
       const y = this._goal.y - trajectory.lastSegment.lastState.y;
-      trajectory.cost += Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+      const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+      trajectory.cost += distance;
+      
+      if (distance <= 1) { //TODO add parameter
+        trajectory.isReachGoal = true;
+      }
     });
   }
 
@@ -115,7 +120,7 @@ class Explorer {
       }
     });
 
-    return this.getTrajectoryBacktraceSegment(bestIdx);
+    return this._trajectories[bestIdx];
   }
 
   isColliding(state) {
