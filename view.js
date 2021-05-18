@@ -268,8 +268,8 @@ class View {
     });
 
     const group = new fabric.Group([circle, dot], {
-      top: 150,
-      left: this._width - 300,
+      top: this._height / 8,
+      left: this._width * .75,
       angle: 90,
       originX: 'center',
       originY: 'center',
@@ -303,9 +303,9 @@ class View {
     });
 
     const group = new fabric.Group([car, triangle], {
-      left: 250,
-      top: 100,
-      angle: 90,
+      left: this._width/ 4,
+      top: this._height/ 8,
+      angle: 110,
       originX: 'center',
       originY: 'center',
     });
@@ -439,7 +439,8 @@ class View {
 
     for (let i=1; i<=count; ++i) {
       if (i === 1) {
-        this.addShape(this.constructObstacle());
+        this.addShape(this.constructObstacle(.5 * this._width,
+            this._height / 8, 90, 50, 50));
       } else {
         this.addShape(this.constructObstacle((i-1) * 150 + 50, 50, 0, 100, 50));
       }
