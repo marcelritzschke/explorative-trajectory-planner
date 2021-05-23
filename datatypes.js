@@ -24,9 +24,9 @@ class Pose {
 
 // eslint-disable-next-line no-unused-vars
 class State {
-  constructor() {
-    this.x = 0;
-    this.y = 0;
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
     this.angle = 0;
     this.steeringAngle = 0;
     this.v = 0;
@@ -174,5 +174,17 @@ class Shape {
     this.id = id;
     this.fabricObject = fabricObject;
     this.object = object;
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
+class Filter {
+  constructor(startX, startY, deltaX, deltaY, X, Y) {
+    this.startX = startX;
+    this.startY = startY;
+    this.deltaX = deltaX;
+    this.deltaY = deltaY;
+    this.X = X;
+    this.Y = Y;
   }
 }

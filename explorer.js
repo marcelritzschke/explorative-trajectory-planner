@@ -9,9 +9,9 @@ class Explorer {
     this._steeringAngles = [-.6, -.3, .0, .3, .6];
     this._velocities = [.0, 1.];
     this._segments = [];
-    this._trajectories = [];
     this._goalTolerance = 1.;
     this._initialState = new State();
+    this._statesFilter = new StateFilter(view, 1000);
   }
 
   set timestep(value) {
@@ -32,7 +32,6 @@ class Explorer {
 
   reset() {
     this._segments = [];
-    this._trajectories = [];
   }
 
   setInitialState(initialState) {
@@ -62,6 +61,8 @@ class Explorer {
           newSegment.prevIdx = j;
           if (newSegment.lastState.isColliding) {
             newSegment.cost = Infinity;
+          } else {
+            this.addCostDriving(newSegment);
           }
 
           this._segments[layerNumber+1].push(newSegment);
@@ -69,17 +70,21 @@ class Explorer {
       });
     }
 
+    this._segments[layerNumber+1] =
+        this._statesFilter.getFilteredStates(this._segments[layerNumber+1]);
+
     return this._segments[layerNumber+1];
   }
 
   getTrajectories() {
+    const trajectories = [];
     const lastLayerIdx = this._segments.length - 1;
     for (let i=0; i<this._segments[lastLayerIdx].length; ++i) {
-      this._trajectories.push(this.getTrajectoryBacktraceSegment(i));
+      trajectories.push(this.getTrajectoryBacktraceSegment(i));
     }
-    this.addCostDistanceToGoal();
+    this.addCostDistanceToGoal(trajectories);
 
-    return this._trajectories;
+    return trajectories;
   }
 
   getTrajectoryBacktraceSegment(index) {
@@ -98,12 +103,21 @@ class Explorer {
     return trajectory;
   }
 
-  addCostDistanceToGoal() {
-    this._trajectories.forEach((trajectory) => {
+  addCostDriving(segment) {
+    let cost = 0;
+    segment.states.forEach((state) => {
+      cost += Math.abs(state.v);
+      cost += Math.abs(state.steeringAngle);
+    });
+    segment.cost = cost;
+  }
+
+  addCostDistanceToGoal(trajectories) {
+    trajectories.forEach((trajectory) => {
       const x = this._goal.x - trajectory.lastSegment.lastState.x;
       const y = this._goal.y - trajectory.lastSegment.lastState.y;
       const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-      trajectory.cost += distance;
+      trajectory.cost += distance * 10;
 
       if (distance <= this._goalTolerance) {
         trajectory.isReachGoal = true;
@@ -111,17 +125,17 @@ class Explorer {
     });
   }
 
-  getBestTrajectory() {
+  getBestTrajectory(trajectories) {
     let bestCost = Infinity;
     let bestIdx = null;
-    this._trajectories.forEach((trajectory, index) => {
+    trajectories.forEach((trajectory, index) => {
       if (trajectory.cost <= bestCost) {
         bestCost = trajectory.cost;
         bestIdx = index;
       }
     });
 
-    return this._trajectories[bestIdx];
+    return trajectories[bestIdx];
   }
 
   isColliding(state) {

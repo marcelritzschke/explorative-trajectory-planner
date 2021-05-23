@@ -448,6 +448,54 @@ class View {
 
     this.reset();
   }
+
+  drawFilter(filter) {
+    const stateMin = new State(
+        filter.startX * this._scale, filter.startY * this._scale);
+    const transformed = Utils.getStateInGlobalSystem(new Pose(
+        this._ego.left, this._ego.top, this._ego.angle), stateMin);
+
+    const frame = new fabric.Rect({
+      width: filter.deltaX * filter.X * this._scale,
+      height: filter.deltaY * filter.Y * this._scale,
+      fill: '',
+      stroke: colorMap.get('ego'),
+      strokeWidth: 1,
+      originX: 'left',
+      originY: 'bottom',
+    });
+
+    const lines = [];
+    lines.push(frame);
+    for (let i=0; i<filter.X; ++i) {
+      lines.push(new fabric.Line([i * filter.deltaX * this._scale,
+        0,
+        i * filter.deltaX * this._scale,
+        -filter.deltaY * filter.Y * this._scale],
+      {type: 'line', stroke: colorMap.get('ego')}));
+    }
+
+    for (let i=0; i<filter.Y; ++i) {
+      lines.push(new fabric.Line([0,
+        -i * filter.deltaY * this._scale,
+        filter.deltaX * filter.X * this._scale,
+        -i * filter.deltaY * this._scale],
+      {type: 'line', stroke: colorMap.get('ego')}));
+    }
+
+    const group = new fabric.Group(lines, {
+      left: transformed.x,
+      top: transformed.y,
+      angle: this._ego.angle - 90,
+      fill: '',
+      originX: 'left',
+      originY: 'bottom',
+    });
+
+    this.addShape(new Shape('Filter',
+        this.getNextId(),
+        group));
+  }
 }
 
 // eslint-disable-next-line no-unused-vars

@@ -2,11 +2,16 @@ class Planner {
   constructor(view) {
     this._view = view;
     this._explorer = null;
+    this._trajectories = [];
     this.reset();
   }
 
   get lastTrajectory() {
     return this._lastTrajectory;
+  }
+
+  get trajectories() {
+    return this._trajectories;
   }
 
   set timestep(value) {
@@ -35,6 +40,7 @@ class Planner {
         this._view.getObstacles(),
     );
     this._lastTrajectory = [];
+    this._trajectories = [];
   }
 
   calculateFinalTrajectory(timer) {
@@ -42,7 +48,7 @@ class Planner {
       return;
     }
 
-    this._lastTrajectory = this._explorer.getBestTrajectory();
+    this._lastTrajectory = this._explorer.getBestTrajectory(this._trajectories);
     this._lastTrajectory.origin = this._view.getEgoPosition();
     this._lastTrajectory.time = timer;
 
@@ -63,11 +69,11 @@ class Planner {
       this._explorer.iterateLayer(i);
     }
     this._view.setPreviousTrajectoriesInactive();
-    const trajectories = this._explorer.getTrajectories();
+    this._trajectories = this._explorer.getTrajectories();
 
     const notcolliding = [];
     const colliding = [];
-    for (const trajectory of trajectories) {
+    for (const trajectory of this._trajectories) {
       if (trajectory.isColliding) {
         colliding.push(trajectory);
       } else {
@@ -81,6 +87,8 @@ class Planner {
 
     console.log('Planner.explore() time =',
         new Date().getTime() - startTime, 'ms');
+
+    return this._trajectories;
   }
 }
 
