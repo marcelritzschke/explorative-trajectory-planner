@@ -2135,6 +2135,7 @@ const colorMap = new Map([
   ['trajectory', 'rgb(100, 100, 100)'],
   ['inactive', '#ccc'],
   ['grid', '#ccc'],
+  ['background', 'white'],
   ['obstacle', 'rgb(5, 46, 107)'],
   ['goal', 'rgb(6,62,146)'],
   ['ego', 'rgb(3,90,32)'],
@@ -2330,10 +2331,20 @@ class ObstacleGrid {
     return grid;
   }
 
+  clear() {
+    this._grid = Object.assign({}, this.createObstacleGrid());
+  }
+
   setObstacle(pose) {
     const X = this.getX(pose.x);
     const Y = this.getY(pose.y);
     this._grid[X][Y] = true;
+  }
+
+  toggleObstacle(pose) {
+    const X = this.getX(pose.x);
+    const Y = this.getY(pose.y);
+    this._grid[X][Y] = !this._grid[X][Y];
   }
 
   getX(x) {
@@ -2467,6 +2478,10 @@ class Controller {
     }
 
     this._model.steeringAngles = steeringAngles;
+  }
+
+  deleteMap() {
+    this._model.deleteMap();
   }
 }
 module.exports.Controller = Controller;
@@ -2801,9 +2816,15 @@ class Model {
   }
 
   setObstacle(x, y) {
-    const pose = Utils.convertToMetric(this._scale, new Pose(x, y));
-    this._obstacleGrid.setObstacle(pose);
-    this._view.drawObstacles(this._obstacleGrid);
+    this._obstacleGrid.setObstacle(
+        Utils.convertToMetric(this._scale, new Pose(x, y)));
+    this._view.drawObstacle(new Pose(x, y));
+  }
+
+  toggleObstacle(x, y) {
+    this._obstacleGrid.toggleObstacle(
+        Utils.convertToMetric(this._scale, new Pose(x, y)));
+    this._view.toggleObstacle(new Pose(x, y));
   }
 
   reset() {
@@ -2848,6 +2869,11 @@ class Model {
     state.v = this._activeState.v;
     state.steeringAngle = this._activeState.steeringAngle;
     return state;
+  }
+
+  deleteMap() {
+    this._obstacleGrid.clear();
+    this._view.clearAllObstacles();
   }
 
   getEgo() {
@@ -33653,6 +33679,8 @@ class Grid {
     this._width = width;
     this._height = height;
     this._scale = scale;
+    this._X = parseInt(width/ scale);
+    this._Y = parseInt(height/ scale);
     this._object = this.createGrid();
   }
 
@@ -33660,26 +33688,68 @@ class Grid {
     return this._object;
   }
 
+  toggleSquare(row, col) {
+    const idx = this._X * col + row;
+    if (this._object._objects[idx].fill === colorMap.get('background')) {
+      this._object._objects[idx].set({fill: colorMap.get('obstacle')});
+    } else {
+      this._object._objects[idx].set({fill: colorMap.get('background')});
+    }
+  }
+
+  setSquareAsObstacle(row, col) {
+    const idx = this._X * col + row;
+    this._object._objects[idx].set({fill: colorMap.get('obstacle')});
+  }
+
+  clear() {
+    for (let col=0; col<this._Y; ++col) {
+      for (let row=0; row<this._X; ++row) {
+        const idx = this._X * col + row;
+        this._object._objects[idx].set({fill: colorMap.get('background')});
+      }
+    }
+  }
+
   createGrid() {
     const lines = this.getLines();
-    const grid = new fabric.Group(lines, {
+    const squares = this.getSquares();
+    const grid = new fabric.Group(squares.concat(lines), {
       selectable: false,
       evented: false,
-      opacity: 0.25,
     });
 
     return grid;
+  }
+
+  getSquares() {
+    const squares = [];
+    for (let col=0; col<this._Y; ++col) {
+      for (let row=0; row<this._X; ++row) {
+        squares.push(new fabric.Rect({
+          left: row * this._scale,
+          top: col * this._scale,
+          width: this._scale,
+          height: this._scale,
+          fill: colorMap.get('background'),
+          originX: 'left',
+          originY: 'top',
+          evented: false,
+          selectable: false,
+        }));
+      }
+    }
+    return squares;
   }
 
   getLines() {
     const lines = [];
     const gridSize = this._scale;
     for (let i = 0; i < (this._width / gridSize); i++) {
-      lines.push(new fabric.Line([i * gridSize, 0, i * gridSize,
-        this._height], {type: 'line', stroke: colorMap.get('grid')}));
-      lines.push(new fabric.Line([0, i * gridSize,
-        this._width, i * gridSize], {type: 'line',
-        stroke: colorMap.get('grid')}));
+      lines.push(new fabric.Line([i * gridSize, 0, i * gridSize, this._height],
+          {type: 'line', stroke: colorMap.get('grid'), opacity: 0.25}));
+      lines.push(new fabric.Line([0, i * gridSize, this._width, i * gridSize],
+          {type: 'line', stroke: colorMap.get('grid'), opacity: 0.25}));
     }
     return lines;
   }
@@ -33706,7 +33776,7 @@ const Listener = {
     isPlaceObstacleEnabled = true;
     if (canObstacleBePlaced) {
       const pointer = getCanvas().getPointer(evt.e);
-      getModel().setObstacle(pointer.x, pointer.y);
+      getModel().toggleObstacle(pointer.x, pointer.y);
     }
   },
 
@@ -33750,7 +33820,6 @@ const colorMap = require('../Utils/datatypes').colorMap;
 const Pose = require('../Utils/datatypes').Pose;
 const CarShape = require('../Utils/datatypes').CarShape;
 const Shape = require('../Utils/datatypes').Shape;
-const ObstacleGrid = require('../Utils/datatypes').ObstacleGrid;
 const Grid = require('./grid').Grid;
 const Listener = require('./listener').Listener;
 
@@ -33762,11 +33831,10 @@ class View {
     this._idCounter = 0;
     this._scale = 20;
     this._shapes = new Map();
-    this._fixedShapes = new Set(['Grid', 'Obstacle', 'Goal', 'Ego']);
+    this._fixedShapes = new Set(['Grid', 'Goal', 'Ego']);
     this._ego = null;
     this._car = new CarShape();
     this._grid = null;
-    this._obstacleGrid = null;
 
     canvas.on('mouse:down', Listener.mouseDownListener);
     canvas.on('object:modified', Listener.objectMovedListener);
@@ -33823,7 +33891,11 @@ class View {
   bringFixedShapesInFront() {
     this._fixedShapes.forEach((name) => {
       this.getListOfShapesByName(name).forEach((shape) => {
-        shape.fabricObject.bringToFront();
+        if (name === 'Grid') {
+          shape.fabricObject.sendToBack();
+        } else {
+          shape.fabricObject.bringToFront();
+        }
       });
     });
   }
@@ -34097,44 +34169,28 @@ class View {
         group));
   }
 
-  drawObstacles(obstacles) {
-    obstacles.grid.forEach((entries, row) => {
-      entries.forEach((entry, col) => {
-        if (entry) {
-          if (this._obstacleGrid == null ||
-            (this._obstacleGrid != null &&
-                !this._obstacleGrid._grid[row][col])) {
-            if (this._obstacleGrid == null) {
-              this._obstacleGrid =
-                new ObstacleGrid(obstacles.width, obstacles.height);
-            }
-            this._obstacleGrid._grid[row][col] = true;
-
-            const obstacle = new fabric.Rect({
-              left: row * this._scale,
-              top: col * this._scale,
-              width: this._scale,
-              height: this._scale,
-              fill: colorMap.get('obstacle'),
-              originX: 'left',
-              originY: 'top',
-              evented: false,
-              selectable: false,
-            });
-
-            this.addShape(new Shape('Obstacle',
-                this.getNextId(),
-                obstacle));
-          }
-        }
-      });
-    });
+  drawObstacle(pose) {
+    this._grid.setSquareAsObstacle(parseInt(pose.x / this._scale),
+        parseInt(pose.y / this._scale));
 
     this.bringFixedShapesInFront();
     this.render();
   }
-}
 
+  toggleObstacle(pose) {
+    this._grid.toggleSquare(parseInt(pose.x / this._scale),
+        parseInt(pose.y / this._scale));
+
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
+  clearAllObstacles() {
+    this._grid.clear();
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+}
 module.exports.View = View;
 
 },{"../Utils/Utils":5,"../Utils/datatypes":6,"./grid":18,"./listener":19,"fabric":15}]},{},[9]);

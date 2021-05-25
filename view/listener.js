@@ -6,7 +6,7 @@ const Listener = {
     isPlaceObstacleEnabled = true;
     if (canObstacleBePlaced) {
       const pointer = getCanvas().getPointer(evt.e);
-      getModel().setObstacle(pointer.x, pointer.y);
+      getModel().toggleObstacle(pointer.x, pointer.y);
     }
   },
 

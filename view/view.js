@@ -4,7 +4,6 @@ const colorMap = require('../Utils/datatypes').colorMap;
 const Pose = require('../Utils/datatypes').Pose;
 const CarShape = require('../Utils/datatypes').CarShape;
 const Shape = require('../Utils/datatypes').Shape;
-const ObstacleGrid = require('../Utils/datatypes').ObstacleGrid;
 const Grid = require('./grid').Grid;
 const Listener = require('./listener').Listener;
 
@@ -16,11 +15,10 @@ class View {
     this._idCounter = 0;
     this._scale = 20;
     this._shapes = new Map();
-    this._fixedShapes = new Set(['Grid', 'Obstacle', 'Goal', 'Ego']);
+    this._fixedShapes = new Set(['Grid', 'Goal', 'Ego']);
     this._ego = null;
     this._car = new CarShape();
     this._grid = null;
-    this._obstacleGrid = null;
 
     canvas.on('mouse:down', Listener.mouseDownListener);
     canvas.on('object:modified', Listener.objectMovedListener);
@@ -77,7 +75,11 @@ class View {
   bringFixedShapesInFront() {
     this._fixedShapes.forEach((name) => {
       this.getListOfShapesByName(name).forEach((shape) => {
-        shape.fabricObject.bringToFront();
+        if (name === 'Grid') {
+          shape.fabricObject.sendToBack();
+        } else {
+          shape.fabricObject.bringToFront();
+        }
       });
     });
   }
@@ -351,42 +353,26 @@ class View {
         group));
   }
 
-  drawObstacles(obstacles) {
-    obstacles.grid.forEach((entries, row) => {
-      entries.forEach((entry, col) => {
-        if (entry) {
-          if (this._obstacleGrid == null ||
-            (this._obstacleGrid != null &&
-                !this._obstacleGrid._grid[row][col])) {
-            if (this._obstacleGrid == null) {
-              this._obstacleGrid =
-                new ObstacleGrid(obstacles.width, obstacles.height);
-            }
-            this._obstacleGrid._grid[row][col] = true;
-
-            const obstacle = new fabric.Rect({
-              left: row * this._scale,
-              top: col * this._scale,
-              width: this._scale,
-              height: this._scale,
-              fill: colorMap.get('obstacle'),
-              originX: 'left',
-              originY: 'top',
-              evented: false,
-              selectable: false,
-            });
-
-            this.addShape(new Shape('Obstacle',
-                this.getNextId(),
-                obstacle));
-          }
-        }
-      });
-    });
+  drawObstacle(pose) {
+    this._grid.setSquareAsObstacle(parseInt(pose.x / this._scale),
+        parseInt(pose.y / this._scale));
 
     this.bringFixedShapesInFront();
     this.render();
   }
-}
 
+  toggleObstacle(pose) {
+    this._grid.toggleSquare(parseInt(pose.x / this._scale),
+        parseInt(pose.y / this._scale));
+
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
+  clearAllObstacles() {
+    this._grid.clear();
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+}
 module.exports.View = View;

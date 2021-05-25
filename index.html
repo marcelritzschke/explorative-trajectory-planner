@@ -30,7 +30,12 @@
     
     <section class="container">
         <input id="settingsToggle" type="checkbox" />
-        <div class="settings">        
+        <div class="settings">    
+            <div class="inputButton">
+                <button id="deleteMap" onclick="getController().deleteMap()">
+                    Delete Map
+                </button>
+            </div>    
             <div class="inputText">
                 <span style="font-size:x-small;">Layers: </span>
                 <span id="layerNumberValue" style="font-size:smaller;">2</span>

@@ -93,5 +93,9 @@ class Controller {
 
     this._model.steeringAngles = steeringAngles;
   }
+
+  deleteMap() {
+    this._model.deleteMap();
+  }
 }
 module.exports.Controller = Controller;

@@ -7,6 +7,7 @@ const colorMap = new Map([
   ['trajectory', 'rgb(100, 100, 100)'],
   ['inactive', '#ccc'],
   ['grid', '#ccc'],
+  ['background', 'white'],
   ['obstacle', 'rgb(5, 46, 107)'],
   ['goal', 'rgb(6,62,146)'],
   ['ego', 'rgb(3,90,32)'],
@@ -202,10 +203,20 @@ class ObstacleGrid {
     return grid;
   }
 
+  clear() {
+    this._grid = Object.assign({}, this.createObstacleGrid());
+  }
+
   setObstacle(pose) {
     const X = this.getX(pose.x);
     const Y = this.getY(pose.y);
     this._grid[X][Y] = true;
+  }
+
+  toggleObstacle(pose) {
+    const X = this.getX(pose.x);
+    const Y = this.getY(pose.y);
+    this._grid[X][Y] = !this._grid[X][Y];
   }
 
   getX(x) {

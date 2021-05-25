@@ -42,9 +42,15 @@ class Model {
   }
 
   setObstacle(x, y) {
-    const pose = Utils.convertToMetric(this._scale, new Pose(x, y));
-    this._obstacleGrid.setObstacle(pose);
-    this._view.drawObstacles(this._obstacleGrid);
+    this._obstacleGrid.setObstacle(
+        Utils.convertToMetric(this._scale, new Pose(x, y)));
+    this._view.drawObstacle(new Pose(x, y));
+  }
+
+  toggleObstacle(x, y) {
+    this._obstacleGrid.toggleObstacle(
+        Utils.convertToMetric(this._scale, new Pose(x, y)));
+    this._view.toggleObstacle(new Pose(x, y));
   }
 
   reset() {
@@ -89,6 +95,11 @@ class Model {
     state.v = this._activeState.v;
     state.steeringAngle = this._activeState.steeringAngle;
     return state;
+  }
+
+  deleteMap() {
+    this._obstacleGrid.clear();
+    this._view.clearAllObstacles();
   }
 
   getEgo() {
