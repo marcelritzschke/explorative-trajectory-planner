@@ -7,7 +7,7 @@ const colorMap = new Map([
   ['trajectory', 'rgb(100, 100, 100)'],
   ['inactive', '#ccc'],
   ['grid', '#ccc'],
-  ['obstacle', 'black'],
+  ['obstacle', 'rgb(5, 46, 107)'],
   ['goal', 'rgb(6,62,146)'],
   ['ego', 'rgb(3,90,32)'],
   ['transparent', 'rgb(0,0,0,0)'],
@@ -52,6 +52,8 @@ class CarShape {
       new Pose(length, -width),
       new Pose(-length, width),
       new Pose(-length, -width),
+      new Pose(0, width), // Point on middle of car to avoid ghosting
+      new Pose(0, -width), // Point on middle of car to avoid ghosting
     ];
 
     for (const corner of corners) {
@@ -171,11 +173,71 @@ class Obstacle extends BasicObject {
 module.exports.Obstacle = Obstacle;
 
 class Shape {
-  constructor(name, id, fabricObject, object = null) {
+  constructor(name, id, fabricObject) {
     this.name = name;
     this.id = id;
     this.fabricObject = fabricObject;
-    this.object = object;
   }
 }
 module.exports.Shape = Shape;
+
+class ObstacleGrid {
+  constructor(width, height, model) {
+    this._width = width;
+    this._height = height;
+    this._model = model;
+    this._grid = this.createObstacleGrid();
+  }
+
+  createObstacleGrid() {
+    const grid = [];
+
+    for (let i=0; i<this._width; ++i) {
+      grid.push([]);
+      for (let j=0; j<this._height; ++j) {
+        grid[i].push(false);
+      }
+    }
+
+    return grid;
+  }
+
+  setObstacle(pose) {
+    const X = this.getX(pose.x);
+    const Y = this.getY(pose.y);
+    this._grid[X][Y] = true;
+  }
+
+  getX(x) {
+    return parseInt(x);
+  }
+
+  getY(y) {
+    return parseInt(y);
+  }
+
+  isColliding(state) {
+    let stateGlobal = Object.assign({}, state);
+
+    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
+        stateGlobal);
+
+    const X = this.getX(stateGlobal.x);
+    const Y = this.getY(stateGlobal.y);
+
+    return this._grid[X][Y];
+  }
+
+  get grid() {
+    return this._grid;
+  }
+
+  get width() {
+    return this._width;
+  }
+
+  get height() {
+    return this._height;
+  }
+}
+module.exports.ObstacleGrid = ObstacleGrid;

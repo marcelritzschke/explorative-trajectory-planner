@@ -36,8 +36,9 @@ class Explorer {
     this._steeringAngles = value;
   }
 
-  reset() {
+  reset(goal) {
     this._segments = [];
+    this._goal = goal;
   }
 
   setInitialState(initialState) {
@@ -146,11 +147,10 @@ class Explorer {
 
   isColliding(state) {
     let colliding = false;
-    for (const obstacle of this._obstacles) {
-      const corners = new CarShape().getCorners(state);
-      for (const corner of corners) {
-        colliding |= obstacle.isColliding(corner);
-      }
+
+    const corners = new CarShape().getCorners(state);
+    for (const corner of corners) {
+      colliding |= this._obstacles.isColliding(corner);
     }
     return colliding;
   }

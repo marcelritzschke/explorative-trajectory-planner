@@ -4,10 +4,9 @@ const colorMap = require('../Utils/datatypes').colorMap;
 const Pose = require('../Utils/datatypes').Pose;
 const CarShape = require('../Utils/datatypes').CarShape;
 const Shape = require('../Utils/datatypes').Shape;
-const BasicObject = require('../Utils/datatypes').BasicObject;
-const Obstacle = require('../Utils/datatypes').Obstacle;
-const Listener = require('../Utils/listener');
+const ObstacleGrid = require('../Utils/datatypes').ObstacleGrid;
 const Grid = require('./grid').Grid;
+const Listener = require('./listener').Listener;
 
 class View {
   constructor(canvas) {
@@ -15,29 +14,28 @@ class View {
     this._width = canvas.width;
     this._height = canvas.height;
     this._idCounter = 0;
-    this._scale = 50;
+    this._scale = 20;
     this._shapes = new Map();
     this._fixedShapes = new Set(['Grid', 'Obstacle', 'Goal', 'Ego']);
     this._ego = null;
     this._car = new CarShape();
-    this._lastEgo = null;
-    this._lastMovedEgo = null;
     this._grid = null;
+    this._obstacleGrid = null;
 
-    this._canvas.on('object:added', Listener.objectAddedListener);
-    this._canvas.on('object:modified', Listener.objectMovedListener);
-    this._canvas.on('mouse:wheel', Listener.mouseWheelListener);
-    this._canvas.on('mouse:down', Listener.mouseDownListener);
-    this._canvas.on('mouse:move', Listener.mouseMoveListener);
-    this._canvas.on('mouse:up', Listener.mouseUpListener);
+    canvas.on('mouse:down', Listener.mouseDownListener);
+    canvas.on('object:modified', Listener.objectMovedListener);
+    canvas.on('mouse:move', Listener.mouseMovedListener);
+    canvas.on('mouse:up', Listener.mouseUpListener);
 
     this.initMap();
-    this.updateScale();
     this.createGrid();
     this.constructEgoShape();
     this.constructGoal();
-    this.updateObstacles();
     this.render();
+  }
+
+  set scale(value) {
+    this._scale = value;
   }
 
   initMap() {
@@ -52,11 +50,6 @@ class View {
         self.delete(name);
       }
     });
-
-    this._ego.left = this._lastMovedEgo.left;
-    this._ego.top = this._lastMovedEgo.top;
-    this._ego.angle = this._lastMovedEgo.angle;
-    this.updateAllShapesToNewEgo();
 
     this.redraw();
   }
@@ -77,6 +70,10 @@ class View {
     this._canvas.requestRenderAll();
   }
 
+  disableSelection() {
+    this._canvas.discardActiveObject().renderAll();
+  }
+
   bringFixedShapesInFront() {
     this._fixedShapes.forEach((name) => {
       this.getListOfShapesByName(name).forEach((shape) => {
@@ -85,17 +82,15 @@ class View {
     });
   }
 
-  updateEgo(origin, state) {
-    let newPosition = state;
-    state.x *= this._scale;
-    state.y *= this._scale;
-    newPosition = Utils.getStateInGlobalSystem(
-        Utils.convertToPixels(this._scale, origin), state);
+  updateEgo(ego) {
+    this.getListOfShapesByName('Ego')[0].fabricObject.set({
+      left: ego.x, top: ego.y, angle: ego.angle});
+    this.bringFixedShapesInFront();
+  }
 
-    this._ego.left = newPosition.x;
-    this._ego.top = newPosition.y;
-    this._ego.angle = newPosition.angle;
-    this.updateAllShapesToNewEgo();
+  updateGoal(goal) {
+    this.getListOfShapesByName('Goal')[0].fabricObject.set({
+      left: goal.x, top: goal.y, angle: goal.angle});
     this.bringFixedShapesInFront();
   }
 
@@ -137,12 +132,12 @@ class View {
         if (!state.isColliding) {
           self[index].x *= this._scale;
           self[index].y *= this._scale;
-          self[index] = Utils.getStateInGlobalSystem(new Pose(
-              this._ego.left, this._ego.top, this._ego.angle), state);
+          self[index] = Utils.getStateInGlobalSystem(new Pose(this._ego.left,
+              this._ego.top, this._ego.angle * Math.PI / 180), self[index]);
 
           const circle = new fabric.Circle({
-            top: state.y,
-            left: state.x,
+            top: self[index].y,
+            left: self[index].x,
             radius: size,
             fill: color,
             originX: 'center',
@@ -153,7 +148,7 @@ class View {
           if (type === 'dotted-line' && index !== 0) {
             const line = new fabric.Line([
               self[index-1].x, self[index-1].y,
-              state.x, state.y], {
+              self[index].x, self[index].y], {
               stroke: color,
               originX: 'center',
               originY: 'center',
@@ -214,53 +209,6 @@ class View {
     this.addShape(new Shape(name, this.getNextId(), circle));
   }
 
-  getGoal() {
-    return this.getObjectsByName('Goal')[0];
-  }
-
-  getEgoPosition() {
-    return [
-      this._ego.left/ this._scale, // TODO: scale needed ?
-      this._ego.top/ this._scale,
-      this._ego.angle,
-    ];
-  }
-
-  getObstacles() {
-    return this.getObjectsByName('Obstacle');
-  }
-
-  constructObstacle(left = this._width/ 2, top = 150,
-      angle = 0, width = 100, height = 50) {
-    const rect = new fabric.Rect({
-      left: left,
-      top: top,
-      width: width,
-      height: height,
-      angle: angle,
-      fill: 'rgb(0,0,0,.2)',
-      originX: 'center',
-      originY: 'center',
-      stroke: colorMap.get('obstacle'),
-      strokeWidth: 2,
-    });
-    const lines = Utils.getDiagonalsOfRectangle(rect);
-    const filledRect = new fabric.Group(lines, {
-      left: rect.left,
-      top: rect.top,
-      originX: 'center',
-      originY: 'center',
-    });
-    filledRect.addWithUpdate(rect);
-
-    let object = new Obstacle(filledRect.left, filledRect.top,
-        filledRect.angle, filledRect.width, filledRect.height);
-    object = Utils.transformObjectToUsk(this._ego, object);
-    object = Utils.convertToMetric(this._scale, object);
-
-    return new Shape('Obstacle', this.getNextId(), filledRect, object);
-  }
-
   constructGoal() {
     const circle = new fabric.Circle({
       radius: 10,
@@ -279,18 +227,13 @@ class View {
     });
 
     const group = new fabric.Group([circle, dot], {
-      top: this._height / 8,
-      left: this._width * .75,
-      angle: 90,
       originX: 'center',
       originY: 'center',
     });
 
-    const object = new BasicObject(group.left, group.top, group.angle);
-    this.addShape(new Shape('Goal', this.getNextId(), group,
-        Utils.convertToMetric(this._scale,
-            Utils.transformObjectToUsk(this._ego, object))),
-    );
+    group.on('mousemove', Listener.objectMouseMoveListener);
+    group.on('mouseout', Listener.objectMouseOutListener);
+    this.addShape(new Shape('Goal', this.getNextId(), group));
   };
 
   constructEgoShape() {
@@ -314,16 +257,13 @@ class View {
     });
 
     const group = new fabric.Group([car, triangle], {
-      left: this._width/ 4,
-      top: this._height/ 8,
-      angle: 110,
       originX: 'center',
       originY: 'center',
     });
 
+    group.on('mousemove', Listener.objectMouseMoveListener);
+    group.on('mouseout', Listener.objectMouseOutListener);
     this._ego = group;
-    this._lastEgo = Object.assign({}, this._ego);
-    this._lastMovedEgo = Object.assign({}, this._ego);
     this.addShape(new Shape('Ego', this.getNextId(), group));
   }
 
@@ -353,111 +293,8 @@ class View {
     }
   }
 
-  getObjectsByName(name) {
-    const objects = [];
-    this.getListOfShapesByName(name).forEach((shape) => {
-      objects.push(shape.object);
-    });
-    return objects;
-  }
-
   getNextId() {
     return this._idCounter++;
-  }
-
-  updateAllShapesToNewEgo() {
-    this.updateShapesToNewEgo('Obstacle');
-    this.updateShapesToNewEgo('Goal');
-
-    this._lastEgo = Object.assign({}, this._ego);
-  }
-
-  updateShapesToNewEgo(name) {
-    this._shapes.get(name).forEach((shape) => {
-      let newEgo = new BasicObject(this._ego.left, this._ego.top,
-          this._ego.angle);
-
-      newEgo = Utils.transformObjectToUsk(this._lastEgo, newEgo);
-
-      const xShift = newEgo.x/ this._scale;
-      const yShift = newEgo.y/ this._scale;
-      const angle = (this._ego.angle - this._lastEgo.angle) * Math.PI / 180;
-
-      const newX = shape.object.x - xShift;
-      const newY = shape.object.y - yShift;
-
-      const res = Utils.rotatePoint(newX, newY, angle);
-      shape.object.x = res[0];
-      shape.object.y = res[1];
-      shape.object.angle = shape.object.angle - angle;
-    });
-  }
-
-  objectMovedUpdate(target) {
-    if (this._shapes.get('Ego')[0].fabricObject == target) {
-      this._lastMovedEgo = Object.assign({}, this._ego);
-    } else if (this._shapes.get('Goal')[0].fabricObject == target) {
-      const newObj = new BasicObject(target.left, target.top,
-          target.angle);
-      Utils.transformObjectToUsk(this._ego, newObj);
-      Utils.convertToMetric(this._scale, newObj);
-      Object.assign(this._shapes.get('Goal')[0].object, newObj);
-    } else {
-      this._shapes.get('Obstacle').forEach((shape) => {
-        if (shape.fabricObject == target) {
-          const newObj = new Obstacle(target.left, target.top, target.angle,
-              target.width * target.scaleX, target.height * target.scaleY);
-          Utils.transformObjectToUsk(this._ego, newObj);
-          Utils.convertToMetric(this._scale, newObj);
-          Object.assign(shape.object, newObj);
-          Utils.updateDiagonalsRectangle(target);
-        }
-      });
-    }
-
-    view.reset();
-    controller.reset();
-  }
-
-  updateScale() {
-    const oldScale = this._scale;
-    let newScale = document.getElementById('scale').value;
-
-    if (newScale < 10) {
-      newScale = 10;
-      document.getElementById('scale').value = '10';
-    }
-
-    this._shapes.get('Obstacle').forEach((shape) => {
-      shape.object.rescale(oldScale, newScale);
-    });
-    this._shapes.get('Goal').forEach((shape) => {
-      shape.object.rescale(oldScale, newScale);
-    });
-
-    if (this._grid != null) {
-      this._grid.rescale(newScale);
-      this.reset();
-    }
-
-    this._scale = newScale;
-  }
-
-  updateObstacles() {
-    const count = document.getElementById('obstacles').value;
-    this._shapes.get('Obstacle')
-        .splice(0, this._shapes.get('Obstacle').length);
-
-    for (let i=1; i<=count; ++i) {
-      if (i === 1) {
-        this.addShape(this.constructObstacle(.5 * this._width,
-            this._height / 8, 90, 50, 50));
-      } else {
-        this.addShape(this.constructObstacle((i-1) * 150 + 50, 50, 0, 100, 50));
-      }
-    }
-
-    this.reset();
   }
 
   updateTimerOnScreen(timer) {
@@ -469,8 +306,8 @@ class View {
   drawFilter(filter) {
     const stateMin = new State(
         filter.startX * this._scale, filter.startY * this._scale);
-    const transformed = Utils.getStateInGlobalSystem(new Pose(
-        this._ego.left, this._ego.top, this._ego.angle), stateMin);
+    const transformed = Utils.getStateInGlobalSystem(new Pose(this._ego.left,
+        this._ego.top, this._ego.angle * Math.PI / 180), stateMin);
 
     const frame = new fabric.Rect({
       width: filter.deltaX * filter.X * this._scale,
@@ -512,6 +349,43 @@ class View {
     this.addShape(new Shape('Filter',
         this.getNextId(),
         group));
+  }
+
+  drawObstacles(obstacles) {
+    obstacles.grid.forEach((entries, row) => {
+      entries.forEach((entry, col) => {
+        if (entry) {
+          if (this._obstacleGrid == null ||
+            (this._obstacleGrid != null &&
+                !this._obstacleGrid._grid[row][col])) {
+            if (this._obstacleGrid == null) {
+              this._obstacleGrid =
+                new ObstacleGrid(obstacles.width, obstacles.height);
+            }
+            this._obstacleGrid._grid[row][col] = true;
+
+            const obstacle = new fabric.Rect({
+              left: row * this._scale,
+              top: col * this._scale,
+              width: this._scale,
+              height: this._scale,
+              fill: colorMap.get('obstacle'),
+              originX: 'left',
+              originY: 'top',
+              evented: false,
+              selectable: false,
+            });
+
+            this.addShape(new Shape('Obstacle',
+                this.getNextId(),
+                obstacle));
+          }
+        }
+      });
+    });
+
+    this.bringFixedShapesInFront();
+    this.render();
   }
 }
 

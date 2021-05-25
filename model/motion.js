@@ -1,5 +1,4 @@
 const colorMap = require('../Utils/datatypes').colorMap;
-const Pose = require('../Utils/datatypes').Pose;
 const State = require('../Utils/datatypes').State;
 
 class Motion {
@@ -9,6 +8,8 @@ class Motion {
   }
 
   move(timer) {
+    this._view.drawEgoPoint(colorMap.get('driven'), 2);
+
     const trajectory = this._planner.lastTrajectory;
     const time = timer - trajectory.time;
 
@@ -41,15 +42,7 @@ class Motion {
       fraction = (time - firstState.t)/ (secondState.t - firstState.t);
     }
 
-    const state = this.interpolate(fraction, firstState, secondState);
-
-    const origin = new Pose(trajectory.origin[0],
-        trajectory.origin[1],
-        trajectory.origin[2]);
-    this._view.updateEgo(origin, Object.assign({}, state));
-    this._view.drawEgoPoint(colorMap.get('driven'), 2);
-
-    return state;
+    return this.interpolate(fraction, firstState, secondState);
   }
 
   interpolate(fraction, stateFirst, stateSecond) {

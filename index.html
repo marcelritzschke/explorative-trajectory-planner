@@ -11,7 +11,7 @@
     <script src="utils/applySliderValue.js"></script>
     <script src="static/bundle.js"></script>
 </head>
-<body onload="initializeView(); initializeModel(); initializeController()">
+<body onload="initialize()">
     <header>
 
     </header>
@@ -32,28 +32,12 @@
         <input id="settingsToggle" type="checkbox" />
         <div class="settings">        
             <div class="inputText">
-                <span style="font-size:x-small;">Scale (Pixels/Meter): </span>
-                <span id="scaleValue" style="font-size:smaller;">20</span>
-            </div>
-            <div class="inputSlider">
-                <input id="scale" type="range" min="10" max ="100" step="10"
-                    value="20" onchange="view.updateScale();" oninput="applySliderValue('scale');" />
-            </div>
-            <div class="inputText">
                 <span style="font-size:x-small;">Layers: </span>
                 <span id="layerNumberValue" style="font-size:smaller;">2</span>
             </div>
             <div class="inputSlider">
                 <input id="layerNumber" type="range" min="1" max ="10" step="1"
                     value="2" onchange="getController().updateLayerNumber()" oninput="applySliderValue('layerNumber');" />
-            </div>
-            <div class="inputText">
-                <span style="font-size:x-small;">Base Frequency (s): </span>
-                <span id="baseFrequencyValue" style="font-size:smaller;">0.05</span>
-            </div>
-            <div class="inputSlider">
-                <input id="baseFrequency" type="range" min=".01" max =".1" step=".01"
-                    value=".05" onchange="getController().updateBaseFrequency()" oninput="applySliderValue('baseFrequency');" />
             </div>
             <div class="inputText">
                 <span style="font-size:x-small;">Exploration Frequency (s): </span>
@@ -87,10 +71,6 @@
             <div class="inputSlider">
                 <input id="steeringAngles" type="controls" value="-30 -15 0 15 30"
                     width="200" onchange="getController().updateSteeringAngles()"/>
-            </div>
-            <div class="inputText" style="font-size:x-small;">Obstacles</div>
-            <div class="inputSlider"> 
-                <input id="obstacles" type="text" value="1" type="text" onchange="getController().updateObstacles()"/>
             </div>
             <div class="inputText" style="font-size:x-small;">Draw Exploration</div>
             <div class="inputSlider">

@@ -2,9 +2,11 @@ const colorMap = require('../utils/datatypes').colorMap;
 const Explorer = require('./explorer').Explorer;
 
 class Planner {
-  constructor(view) {
+  constructor(view, obstacleGrid, model) {
     this._view = view;
     this._explorer = null;
+    this._obstacleGrid = obstacleGrid;
+    this._model = model;
     this._trajectories = [];
     this.reset();
   }
@@ -40,8 +42,8 @@ class Planner {
   reset() {
     this._explorer = new Explorer(
         this._view,
-        this._view.getGoal(),
-        this._view.getObstacles(),
+        this._model.getGoal(),
+        this._obstacleGrid,
     );
     this._lastTrajectory = [];
     this._trajectories = [];
@@ -53,7 +55,7 @@ class Planner {
     }
 
     this._lastTrajectory = this._explorer.getBestTrajectory(this._trajectories);
-    this._lastTrajectory.origin = this._view.getEgoPosition();
+    this._lastTrajectory.origin = this._model.getEgo();
     this._lastTrajectory.time = timer;
 
     this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
@@ -67,11 +69,12 @@ class Planner {
       return;
     }
 
-    this._explorer.reset();
+    this._explorer.reset(this._model.getGoal());
     this._explorer.setInitialState(initialState);
     for (let i=0; i<layerTotalNumber; ++i) {
       this._explorer.iterateLayer(i);
     }
+
     this._view.setPreviousTrajectoriesInactive();
     this._trajectories = this._explorer.getTrajectories();
 

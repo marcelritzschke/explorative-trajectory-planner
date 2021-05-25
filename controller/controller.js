@@ -5,6 +5,13 @@ class Controller {
     this._timer = 0;
     this._baseFrequency_ms = 50;
 
+
+    document.onkeydown = function(e) {
+      if (e.key === 'Escape') {
+        model.escapeKeyPressed();
+      }
+    };
+
     this.reset();
   }
 
@@ -38,23 +45,9 @@ class Controller {
     this.updateSteeringAngles();
   }
 
-  updateObstacles() {
-    this._view.updateObstacles();
-    this._model.reset();
-  }
-
   updateLayerNumber() {
     this._model.layerTotalNumber =
         parseInt(document.getElementById('layerNumber').value);
-  }
-
-  updateBaseFrequency() {
-    window.clearInterval(this._intervalHandler);
-    this._baseFrequency_ms =
-        parseFloat(document.getElementById('baseFrequency').value) * 1000;
-    this._intervalHandler = window.setInterval(() => this.execute(),
-        this._baseFrequency_ms);
-    this._model.baseFrequency = this._baseFrequency_ms;
   }
 
   updateExplorationFrequency() {
