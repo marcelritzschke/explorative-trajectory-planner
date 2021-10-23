@@ -363,10 +363,38 @@ class View {
 
   toggleObstacle(pose) {
     this._grid.toggleSquare(parseInt(pose.x / this._scale),
-        parseInt(pose.y / this._scale));
+        parseInt(pose.y / this._scale),
+        colorMap.get('obstacle'));
 
     this.bringFixedShapesInFront();
     this.render();
+  }
+
+  drawNodeAStarTentative(x, y) {
+    this._grid.paintSquare(x, y, colorMap.get('astartentative'));
+
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
+  drawNodeAStarVisited(x, y) {
+    this._grid.paintSquare(x, y, colorMap.get('astarvisited'));
+
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
+  clearNodeDrawn(x, y) {
+    this._grid.paintSquare(x, y, colorMap.get('background'));
+
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
+  drawPath(path) {
+    path.forEach((node) => {
+      this._grid.paintSquare(node[0], node[1], colorMap.get('path'));
+    });
   }
 
   clearAllObstacles() {

@@ -15,6 +15,19 @@ class Controller {
     this.reset();
   }
 
+  makePath() {
+    this._intervalHandler = window.setInterval(() => this.executePathPlanner(),
+        this._baseFrequency_ms);
+  }
+
+  executePathPlanner() {
+    if (this._model.isPathPlannerFinished()) {
+      window.clearInterval(this._intervalHandler);
+    } else {
+      this._model.runPathPlanner();
+    }
+  }
+
   step() {
     this.execute();
   }

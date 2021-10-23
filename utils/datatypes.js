@@ -13,6 +13,9 @@ const colorMap = new Map([
   ['ego', 'rgb(3,90,32)'],
   ['transparent', 'rgb(0,0,0,0)'],
   ['navi', 'rgb(5, 46, 107)'],
+  ['astartentative', 'rgb(0, 150, 25)'],
+  ['astarvisited', 'rgb(0, 83, 21)'],
+  ['path', 'rgb(200, 200, 0)'],
 ]);
 module.exports.colorMap = colorMap;
 

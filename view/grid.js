@@ -14,18 +14,22 @@ class Grid {
     return this._object;
   }
 
-  toggleSquare(row, col) {
+  toggleSquare(row, col, color) {
     const idx = this._X * col + row;
     if (this._object._objects[idx].fill === colorMap.get('background')) {
-      this._object._objects[idx].set({fill: colorMap.get('obstacle')});
+      this._object._objects[idx].set({fill: color});
     } else {
       this._object._objects[idx].set({fill: colorMap.get('background')});
     }
   }
 
-  setSquareAsObstacle(row, col) {
+  paintSquare(row, col, color) {
     const idx = this._X * col + row;
-    this._object._objects[idx].set({fill: colorMap.get('obstacle')});
+    this._object._objects[idx].set({fill: color});
+  }
+
+  setSquareAsObstacle(row, col) {
+    this.paintSquare(row, col, colorMap.get('obstacle'));
   }
 
   clear() {

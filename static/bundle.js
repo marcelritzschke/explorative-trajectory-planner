@@ -2141,6 +2141,9 @@ const colorMap = new Map([
   ['ego', 'rgb(3,90,32)'],
   ['transparent', 'rgb(0,0,0,0)'],
   ['navi', 'rgb(5, 46, 107)'],
+  ['astartentative', 'rgb(0, 150, 25)'],
+  ['astarvisited', 'rgb(0, 83, 21)'],
+  ['path', 'rgb(200, 200, 0)'],
 ]);
 module.exports.colorMap = colorMap;
 
@@ -2401,6 +2404,19 @@ class Controller {
     this.reset();
   }
 
+  makePath() {
+    this._intervalHandler = window.setInterval(() => this.executePathPlanner(),
+        this._baseFrequency_ms);
+  }
+
+  executePathPlanner() {
+    if (this._model.isPathPlannerFinished()) {
+      window.clearInterval(this._intervalHandler);
+    } else {
+      this._model.runPathPlanner();
+    }
+  }
+
   step() {
     this.execute();
   }
@@ -2560,11 +2576,9 @@ class Node {
   set distanceFromStart(distance) {
     this._distanceFromStart = distance;
   }
-
   set distanceToEnd(distance) {
     this._distanceToEnd = distance;
   }
-
   set cameFrom(from) {
     this._cameFrom = from;
   }
@@ -2572,30 +2586,29 @@ class Node {
   get id() {
     return this._id;
   }
-
   get value() {
     return this._value;
   }
-
   get row() {
     return this._row;
   }
-
   get col() {
     return this._col;
   }
-
   get distanceFromStart() {
     return this._distanceFromStart;
   }
-
+  get distanceToEnd() {
+    return this._distanceToEnd;
+  }
   get cameFrom() {
     return this._cameFrom;
   }
 }
 
 class AStar {
-  constructor(start, end, grid) { // grid = arr[arr[bool]]
+  constructor(view, start, end, grid) { // grid = arr[arr[bool]]
+    this._view = view;
     this._start = start;
     this._end = end;
     this._grid = grid;
@@ -2603,31 +2616,39 @@ class AStar {
     this._startCol = start[1];
     this._endRow = end[0];
     this._endCol = end[1];
+    this._drawnNodes = [];
+
+    this.init();
   }
 
-  calculatePath() {
-    const nodes = this._grid.map((row, rowIdx) =>
+  init() {
+    this._nodes = this._grid.map((row, rowIdx) =>
       row.map((col, colIdx) =>
         new Node(rowIdx, colIdx, col)),
     );
-    const startNode = nodes[this._startRow][this._startCol];
-    const endNode = nodes[this._endRow][this._endCol];
+    this._startNode = this._nodes[this._startRow][this._startCol];
+    this._endNode = this._nodes[this._endRow][this._endCol];
 
-    startNode.distanceFromStart = 0;
-    startNode.distanceToEnd = this.calculateDistance(this._startRow,
+    this._startNode.distanceFromStart = 0;
+    this._startNode.distanceToEnd = this.calculateDistance(this._startRow,
         this._startCol);
 
-    const openSet = [startNode]; // make as min heap
-    const closedSet = [];
+    this._openSet = [this._startNode]; // make as min heap
+    this._closedSet = [];
 
-    let endReached = false;
-    while (openSet.length > 0 && !endReached) {
-      const [node, idx] = this.getMinNode(openSet);
-      openSet.splice(idx, 1);
-      closedSet.push(node);
+    this._endReached = false;
+  }
 
-      const neighbors = this.getNeighbors(node, nodes);
-      neighbors.filter((i) => !this.isInArray(i, closedSet))
+  iterate() {
+    if (this._openSet.length > 0 && !this._endReached) {
+      const [node, idx] = this.getMinNode(this._openSet);
+      this._openSet.splice(idx, 1);
+      this._closedSet.push(node);
+      this._view.drawNodeAStarVisited(node.row, node.col);
+      this._drawnNodes.push(node);
+
+      const neighbors = this.getNeighbors(node, this._nodes);
+      neighbors.filter((i) => !this.isInArray(i, this._closedSet))
           .filter((j) => !j.value)
           .forEach((neighbor) => {
             neighbor.distanceFromStart = node.distanceFromStart + 1;
@@ -2635,24 +2656,41 @@ class AStar {
                 this.calculateDistance(neighbor.row, neighbor.col);
             neighbor.cameFrom = node;
 
-            if (neighbor.id === endNode.id) {
-              endReached = true;
+            if (neighbor.id === this._endNode.id) {
+              this._endReached = true;
             }
 
-            const foundInOpenSet = openSet.find((el) => el.id === neighbor.id);
+            const foundInOpenSet = this._openSet.find((el) =>
+              el.id === neighbor.id);
             if (foundInOpenSet === undefined) {
-              openSet.push(neighbor);
+              this._openSet.push(neighbor);
+              this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
+              this._drawnNodes.push(neighbor);
             } else if (foundInOpenSet.distanceToEnd > neighbor.distanceToEnd) {
               foundInOpenSet = neighbor;
             }
           });
     }
+  }
 
-    if (endReached) {
-      return this.backtrace(endNode);
+  isFinished() {
+    return this._endReached;
+  }
+
+  getPath() {
+    if (this._endReached) {
+      const path = this.backtrace(this._endNode);
+      this.clearNodes();
+      return path;
     } else {
       return [];
     }
+  }
+
+  clearNodes() {
+    this._drawnNodes.forEach((node) => {
+      this._view.clearNodeDrawn(node.row, node.col);
+    });
   }
 
   backtrace(node) {
@@ -2664,7 +2702,6 @@ class AStar {
     }
     return result;
   }
-  
 
   getMinNode(nodes) {
     let min = nodes[0];
@@ -2971,6 +3008,10 @@ class Model {
     this._step = 0;
     this._activeState = new State();
 
+    this._astar = null;
+    this._astarIsFinished = false;
+    this._astarIsStarted = false;
+
     this._view.updateGoal(Utils.convertToPixels(this._scale, this._goal));
     this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
   }
@@ -3006,19 +3047,31 @@ class Model {
     this._view.reset();
   }
 
-  execute(timer) {
-    if (this._step == 0) {
-      const astar = new AStar([0, 1], [4, 3], [
-        [false, false, false, false, false],
-        [false, true, true, true, false],
-        [false, false, false, false, false],
-        [true, false, true, true, true],
-        [false, false, false, false, false],
-      ]);
-      const path = astar.calculatePath();
-      console.log(path);
+  isPathPlannerFinished() {
+    if (this._astar === null) {
+      return false;
+    }
+    return this._astar.isFinished();
+  }
+
+  runPathPlanner() {
+    if (!this._astarIsStarted) {
+      this._astar = new AStar(this._view,
+          [parseInt(this._ego.x), parseInt(this._ego.y)],
+          [parseInt(this._goal.x), parseInt(this._goal.y)],
+          this._obstacleGrid.grid);
+      this._astarIsStarted = true;
     }
 
+    this._astar.iterate();
+
+    if (this._astar.isFinished()) {
+      const path = this._astar.getPath();
+      this._view.drawPath(path);
+    }
+  }
+
+  execute(timer) {
     if (this._step++ %
         (this._plannerFrequency_ms/ this._baseFrequency_ms) === 0) {
       this._planner.explore(this.createInitialState(), this._layerTotalNumber);
@@ -33871,18 +33924,22 @@ class Grid {
     return this._object;
   }
 
-  toggleSquare(row, col) {
+  toggleSquare(row, col, color) {
     const idx = this._X * col + row;
     if (this._object._objects[idx].fill === colorMap.get('background')) {
-      this._object._objects[idx].set({fill: colorMap.get('obstacle')});
+      this._object._objects[idx].set({fill: color});
     } else {
       this._object._objects[idx].set({fill: colorMap.get('background')});
     }
   }
 
-  setSquareAsObstacle(row, col) {
+  paintSquare(row, col, color) {
     const idx = this._X * col + row;
-    this._object._objects[idx].set({fill: colorMap.get('obstacle')});
+    this._object._objects[idx].set({fill: color});
+  }
+
+  setSquareAsObstacle(row, col) {
+    this.paintSquare(row, col, colorMap.get('obstacle'));
   }
 
   clear() {
@@ -34362,10 +34419,38 @@ class View {
 
   toggleObstacle(pose) {
     this._grid.toggleSquare(parseInt(pose.x / this._scale),
-        parseInt(pose.y / this._scale));
+        parseInt(pose.y / this._scale),
+        colorMap.get('obstacle'));
 
     this.bringFixedShapesInFront();
     this.render();
+  }
+
+  drawNodeAStarTentative(x, y) {
+    this._grid.paintSquare(x, y, colorMap.get('astartentative'));
+
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
+  drawNodeAStarVisited(x, y) {
+    this._grid.paintSquare(x, y, colorMap.get('astarvisited'));
+
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
+  clearNodeDrawn(x, y) {
+    this._grid.paintSquare(x, y, colorMap.get('background'));
+
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
+  drawPath(path) {
+    path.forEach((node) => {
+      this._grid.paintSquare(node[0], node[1], colorMap.get('path'));
+    });
   }
 
   clearAllObstacles() {

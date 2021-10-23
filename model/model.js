@@ -27,6 +27,10 @@ class Model {
     this._step = 0;
     this._activeState = new State();
 
+    this._astar = null;
+    this._astarIsFinished = false;
+    this._astarIsStarted = false;
+
     this._view.updateGoal(Utils.convertToPixels(this._scale, this._goal));
     this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
   }
@@ -62,19 +66,31 @@ class Model {
     this._view.reset();
   }
 
-  execute(timer) {
-    if (this._step == 0) {
-      const astar = new AStar([0, 1], [4, 3], [
-        [false, false, false, false, false],
-        [false, true, true, true, false],
-        [false, false, false, false, false],
-        [true, false, true, true, true],
-        [false, false, false, false, false],
-      ]);
-      const path = astar.calculatePath();
-      console.log(path);
+  isPathPlannerFinished() {
+    if (this._astar === null) {
+      return false;
+    }
+    return this._astar.isFinished();
+  }
+
+  runPathPlanner() {
+    if (!this._astarIsStarted) {
+      this._astar = new AStar(this._view,
+          [parseInt(this._ego.x), parseInt(this._ego.y)],
+          [parseInt(this._goal.x), parseInt(this._goal.y)],
+          this._obstacleGrid.grid);
+      this._astarIsStarted = true;
     }
 
+    this._astar.iterate();
+
+    if (this._astar.isFinished()) {
+      const path = this._astar.getPath();
+      this._view.drawPath(path);
+    }
+  }
+
+  execute(timer) {
     if (this._step++ %
         (this._plannerFrequency_ms/ this._baseFrequency_ms) === 0) {
       this._planner.explore(this.createInitialState(), this._layerTotalNumber);
