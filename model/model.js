@@ -4,6 +4,7 @@ const Pose = require('../utils/datatypes').Pose;
 const State = require('../utils/datatypes').State;
 const ObstacleGrid = require('../utils/datatypes').ObstacleGrid;
 const Utils = require('../Utils/Utils').Utils;
+const AStar = require('../model/astar').AStar;
 
 class Model {
   constructor(view, width, height) {
@@ -62,6 +63,18 @@ class Model {
   }
 
   execute(timer) {
+    if (this._step == 0) {
+      const astar = new AStar([0, 1], [4, 3], [
+        [false, false, false, false, false],
+        [false, true, true, true, false],
+        [false, false, false, false, false],
+        [true, false, true, true, true],
+        [false, false, false, false, false],
+      ]);
+      const path = astar.calculatePath();
+      console.log(path);
+    }
+
     if (this._step++ %
         (this._plannerFrequency_ms/ this._baseFrequency_ms) === 0) {
       this._planner.explore(this.createInitialState(), this._layerTotalNumber);

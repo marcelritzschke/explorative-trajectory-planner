@@ -2545,7 +2545,177 @@ window.getController = function() {
   return controller;
 };
 
-},{"./controller/controller":8,"./model/model":11,"./view/view":20}],10:[function(require,module,exports){
+},{"./controller/controller":8,"./model/model":12,"./view/view":21}],10:[function(require,module,exports){
+class Node {
+  constructor(row, col, value) {
+    this._id = String(row) + '-' + String(col);
+    this._row = row;
+    this._col = col;
+    this._value = value;
+    this._distanceFromStart = Number.MAX_VALUE; // g
+    this._distanceToEnd = Number.MAX_VALUE; // f=g+h
+    this._cameFrom = null;
+  }
+
+  set distanceFromStart(distance) {
+    this._distanceFromStart = distance;
+  }
+
+  set distanceToEnd(distance) {
+    this._distanceToEnd = distance;
+  }
+
+  set cameFrom(from) {
+    this._cameFrom = from;
+  }
+
+  get id() {
+    return this._id;
+  }
+
+  get value() {
+    return this._value;
+  }
+
+  get row() {
+    return this._row;
+  }
+
+  get col() {
+    return this._col;
+  }
+
+  get distanceFromStart() {
+    return this._distanceFromStart;
+  }
+
+  get cameFrom() {
+    return this._cameFrom;
+  }
+}
+
+class AStar {
+  constructor(start, end, grid) { // grid = arr[arr[bool]]
+    this._start = start;
+    this._end = end;
+    this._grid = grid;
+    this._startRow = start[0];
+    this._startCol = start[1];
+    this._endRow = end[0];
+    this._endCol = end[1];
+  }
+
+  calculatePath() {
+    const nodes = this._grid.map((row, rowIdx) =>
+      row.map((col, colIdx) =>
+        new Node(rowIdx, colIdx, col)),
+    );
+    const startNode = nodes[this._startRow][this._startCol];
+    const endNode = nodes[this._endRow][this._endCol];
+
+    startNode.distanceFromStart = 0;
+    startNode.distanceToEnd = this.calculateDistance(this._startRow,
+        this._startCol);
+
+    const openSet = [startNode]; // make as min heap
+    const closedSet = [];
+
+    let endReached = false;
+    while (openSet.length > 0 && !endReached) {
+      const [node, idx] = this.getMinNode(openSet);
+      openSet.splice(idx, 1);
+      closedSet.push(node);
+
+      const neighbors = this.getNeighbors(node, nodes);
+      neighbors.filter((i) => !this.isInArray(i, closedSet))
+          .filter((j) => !j.value)
+          .forEach((neighbor) => {
+            neighbor.distanceFromStart = node.distanceFromStart + 1;
+            neighbor.distanceToEnd = neighbor.distanceFromStart +
+                this.calculateDistance(neighbor.row, neighbor.col);
+            neighbor.cameFrom = node;
+
+            if (neighbor.id === endNode.id) {
+              endReached = true;
+            }
+
+            const foundInOpenSet = openSet.find((el) => el.id === neighbor.id);
+            if (foundInOpenSet === undefined) {
+              openSet.push(neighbor);
+            } else if (foundInOpenSet.distanceToEnd > neighbor.distanceToEnd) {
+              foundInOpenSet = neighbor;
+            }
+          });
+    }
+
+    if (endReached) {
+      return this.backtrace(endNode);
+    } else {
+      return [];
+    }
+  }
+
+  backtrace(node) {
+    const result = [[node.row, node.col]];
+    let current = node;
+    while (current.cameFrom != null) {
+      current = current.cameFrom;
+      result.unshift([current.row, current.col]);
+    }
+    return result;
+  }
+  
+
+  getMinNode(nodes) {
+    let min = nodes[0];
+    let idx = 0;
+    nodes.forEach((node, id) => {
+      if (node.distanceToEnd < min.distanceToEnd) {
+        min = node;
+        idx = id;
+      }
+    });
+    return [min, idx];
+  }
+
+  getNeighbors(node, nodes) {
+    const row = node.row;
+    const col = node.col;
+
+    const neighbors = [];
+    if (row > 0) {
+      neighbors.push(nodes[row - 1][col]);
+    }
+    if (row < nodes.length - 1) {
+      neighbors.push(nodes[row + 1][col]);
+    }
+    if (col > 0) {
+      neighbors.push(nodes[row][col - 1]);
+    }
+    if (col < nodes[0].length - 1) {
+      neighbors.push(nodes[row][col + 1]);
+    }
+
+    return neighbors;
+  }
+
+  calculateDistance(startRow, startCol) {
+    return Math.abs(startRow - this._endRow) +
+        Math.abs(startCol - this._endCol);
+  }
+
+  isInArray(node, nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (node.id === nodes[i].id) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+module.exports.AStar = AStar;
+
+},{}],11:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
 const StateFilter = require('./statefilter').StateFilter;
 const CarShape = require('../utils/datatypes').CarShape;
@@ -2771,13 +2941,14 @@ class Explorer {
 }
 module.exports.Explorer = Explorer;
 
-},{"../utils/datatypes":16,"../utils/utils":17,"./statefilter":14}],11:[function(require,module,exports){
+},{"../utils/datatypes":17,"../utils/utils":18,"./statefilter":15}],12:[function(require,module,exports){
 const Planner = require('./planner').Planner;
 const Motion = require('./motion').Motion;
 const Pose = require('../utils/datatypes').Pose;
 const State = require('../utils/datatypes').State;
 const ObstacleGrid = require('../utils/datatypes').ObstacleGrid;
 const Utils = require('../Utils/Utils').Utils;
+const AStar = require('../model/astar').AStar;
 
 class Model {
   constructor(view, width, height) {
@@ -2836,6 +3007,18 @@ class Model {
   }
 
   execute(timer) {
+    if (this._step == 0) {
+      const astar = new AStar([0, 1], [4, 3], [
+        [false, false, false, false, false],
+        [false, true, true, true, false],
+        [false, false, false, false, false],
+        [true, false, true, true, true],
+        [false, false, false, false, false],
+      ]);
+      const path = astar.calculatePath();
+      console.log(path);
+    }
+
     if (this._step++ %
         (this._plannerFrequency_ms/ this._baseFrequency_ms) === 0) {
       this._planner.explore(this.createInitialState(), this._layerTotalNumber);
@@ -2931,7 +3114,7 @@ class Model {
 }
 module.exports.Model = Model;
 
-},{"../Utils/Utils":5,"../utils/datatypes":16,"./motion":12,"./planner":13}],12:[function(require,module,exports){
+},{"../Utils/Utils":5,"../model/astar":10,"../utils/datatypes":17,"./motion":13,"./planner":14}],13:[function(require,module,exports){
 const colorMap = require('../Utils/datatypes').colorMap;
 const State = require('../Utils/datatypes').State;
 
@@ -3000,7 +3183,7 @@ class Motion {
 }
 module.exports.Motion = Motion;
 
-},{"../Utils/datatypes":6}],13:[function(require,module,exports){
+},{"../Utils/datatypes":6}],14:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
 const Explorer = require('./explorer').Explorer;
 
@@ -3103,7 +3286,7 @@ class Planner {
 }
 module.exports.Planner = Planner;
 
-},{"../utils/datatypes":16,"./explorer":10}],14:[function(require,module,exports){
+},{"../utils/datatypes":17,"./explorer":11}],15:[function(require,module,exports){
 class StateFilter {
   constructor(view, numberOfStatesPerLayer) {
     this._view = view;
@@ -3202,7 +3385,7 @@ class StateFilter {
 }
 module.exports.StateFilter = StateFilter;
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (Buffer){(function (){
 /* build: `node build.js modules=ALL exclude=gestures,accessors requirejs minifier=uglifyjs` */
 /*! Fabric.js Copyright 2008-2015, Printio (Juriy Zaytsev, Maxim Chernyak) */
@@ -33667,11 +33850,11 @@ fabric.util.object.extend(fabric.IText.prototype, /** @lends fabric.IText.protot
 
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"buffer":3,"jsdom":2,"jsdom/lib/jsdom/living/generated/utils":2,"jsdom/lib/jsdom/utils":2}],16:[function(require,module,exports){
+},{"buffer":3,"jsdom":2,"jsdom/lib/jsdom/living/generated/utils":2,"jsdom/lib/jsdom/utils":2}],17:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"./utils":17,"dup":6}],17:[function(require,module,exports){
+},{"./utils":18,"dup":6}],18:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],18:[function(require,module,exports){
+},{"dup":5}],19:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
 
 class Grid {
@@ -33767,7 +33950,7 @@ class Grid {
 };
 module.exports.Grid = Grid;
 
-},{"../utils/datatypes":16}],19:[function(require,module,exports){
+},{"../utils/datatypes":17}],20:[function(require,module,exports){
 let canObstacleBePlaced = true;
 let isPlaceObstacleEnabled = false;
 
@@ -33813,7 +33996,7 @@ const Listener = {
 };
 module.exports.Listener = Listener;
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 const fabric = require('fabric').fabric;
 const Utils = require('../Utils/Utils').Utils;
 const colorMap = require('../Utils/datatypes').colorMap;
@@ -34193,4 +34376,4 @@ class View {
 }
 module.exports.View = View;
 
-},{"../Utils/Utils":5,"../Utils/datatypes":6,"./grid":18,"./listener":19,"fabric":15}]},{},[9]);
+},{"../Utils/Utils":5,"../Utils/datatypes":6,"./grid":19,"./listener":20,"fabric":16}]},{},[9]);
