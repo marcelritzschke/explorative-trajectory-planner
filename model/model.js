@@ -5,6 +5,7 @@ const State = require('../utils/datatypes').State;
 const ObstacleGrid = require('../utils/datatypes').ObstacleGrid;
 const Utils = require('../Utils/Utils').Utils;
 const AStar = require('../model/astar').AStar;
+const DistanceGrid = require('../model/distancegrid').DistanceGrid;
 
 class Model {
   constructor(view, width, height) {
@@ -19,8 +20,13 @@ class Model {
     this._lastMovedEgo = Object.assign({}, this._ego);
     this._obstacleGrid = new ObstacleGrid(width/ this._scale,
         height/ this._scale, this);
-    this._planner = new Planner(view, this._obstacleGrid, this);
+    this._distanceGrid = new DistanceGrid(parseInt(width/ this._scale),
+        parseInt(height/ this._scale), this);
+
+    this._planner = new Planner(view, this._obstacleGrid,
+        this._distanceGrid, this);
     this._motion = new Motion(this._planner, view);
+
     this._layerTotalNumber = 2;
     this._baseFrequency_ms = 50;
     this._plannerFrequency_ms = 2000;
@@ -87,6 +93,7 @@ class Model {
     if (this._astar.isFinished()) {
       const path = this._astar.getPath();
       this._view.drawPath(path);
+      this._distanceGrid.calculate(path);
     }
   }
 

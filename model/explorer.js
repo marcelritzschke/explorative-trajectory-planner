@@ -6,9 +6,10 @@ const Segment = require('../utils/datatypes').Segment;
 const Trajectory = require('../utils/datatypes').Trajectory;
 
 class Explorer {
-  constructor(view, goal, obstacles) {
+  constructor(view, goal, obstacles, distanceGrid) {
     this._goal = goal;
     this._obstacles = obstacles;
+    this._distanceGrid = distanceGrid;
     this._wheelBase = 2.64 / 2;
     this._timestep = 2.;
     this._intertime = 0.2;
@@ -70,6 +71,7 @@ class Explorer {
             newSegment.cost = Infinity;
           } else {
             this.addCostDriving(newSegment);
+            this.addCostDistanceToPath(newSegment);
           }
 
           this._segments[layerNumber+1].push(newSegment);
@@ -116,7 +118,15 @@ class Explorer {
       cost += Math.abs(state.v);
       cost += Math.abs(state.steeringAngle);
     });
-    segment.cost = cost;
+    segment.cost += cost;
+  }
+
+  addCostDistanceToPath(segment) {
+    let cost = 0;
+    segment.states.forEach((state) => {
+      cost += this._distanceGrid.getDistance(state);
+    });
+    segment.cost += cost;
   }
 
   addCostDistanceToGoal(trajectories) {

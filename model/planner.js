@@ -2,10 +2,11 @@ const colorMap = require('../utils/datatypes').colorMap;
 const Explorer = require('./explorer').Explorer;
 
 class Planner {
-  constructor(view, obstacleGrid, model) {
+  constructor(view, obstacleGrid, distanceGrid, model) {
     this._view = view;
     this._explorer = null;
     this._obstacleGrid = obstacleGrid;
+    this._distanceGrid = distanceGrid;
     this._model = model;
     this._trajectories = [];
     this.reset();
@@ -44,6 +45,7 @@ class Planner {
         this._view,
         this._model.getGoal(),
         this._obstacleGrid,
+        this._distanceGrid,
     );
     this._lastTrajectory = [];
     this._trajectories = [];
