@@ -6,10 +6,11 @@ const Segment = require('../utils/datatypes').Segment;
 const Trajectory = require('../utils/datatypes').Trajectory;
 
 class Explorer {
-  constructor(view, goal, obstacles, distanceGrid) {
+  constructor(view, goal, obstacles, distanceGrid, distanceToGoalGrid) {
     this._goal = goal;
     this._obstacles = obstacles;
     this._distanceGrid = distanceGrid;
+    this._distanceToGoalGrid = distanceToGoalGrid;
     this._wheelBase = 2.64 / 2;
     this._timestep = 2.;
     this._intertime = 0.2;
@@ -72,6 +73,7 @@ class Explorer {
           } else {
             this.addCostDriving(newSegment);
             this.addCostDistanceToPath(newSegment);
+            this.addCostDistanceToGoal(newSegment);
           }
 
           this._segments[layerNumber+1].push(newSegment);
@@ -91,7 +93,7 @@ class Explorer {
     for (let i=0; i<this._segments[lastLayerIdx].length; ++i) {
       trajectories.push(this.getTrajectoryBacktraceSegment(i));
     }
-    this.addCostDistanceToGoal(trajectories);
+    this.addCostDistanceToGoalEuclidian(trajectories);
 
     return trajectories;
   }
@@ -129,7 +131,15 @@ class Explorer {
     segment.cost += cost;
   }
 
-  addCostDistanceToGoal(trajectories) {
+  addCostDistanceToGoal(segment) {
+    let cost = 0;
+    segment.states.forEach((state) => {
+      cost += this._distanceToGoalGrid.getDistance(state);
+    });
+    segment.cost += 10 * cost;
+  }
+
+  addCostDistanceToGoalEuclidian(trajectories) {
     trajectories.forEach((trajectory) => {
       const x = this._goal.x - trajectory.lastSegment.lastState.x;
       const y = this._goal.y - trajectory.lastSegment.lastState.y;

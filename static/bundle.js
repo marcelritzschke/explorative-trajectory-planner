@@ -2313,77 +2313,6 @@ class Shape {
 }
 module.exports.Shape = Shape;
 
-class ObstacleGrid {
-  constructor(width, height, model) {
-    this._width = width;
-    this._height = height;
-    this._model = model;
-    this._grid = this.createObstacleGrid();
-  }
-
-  createObstacleGrid() {
-    const grid = [];
-
-    for (let i=0; i<this._width; ++i) {
-      grid.push([]);
-      for (let j=0; j<this._height; ++j) {
-        grid[i].push(false);
-      }
-    }
-
-    return grid;
-  }
-
-  clear() {
-    this._grid = Object.assign({}, this.createObstacleGrid());
-  }
-
-  setObstacle(pose) {
-    const X = this.getX(pose.x);
-    const Y = this.getY(pose.y);
-    this._grid[X][Y] = true;
-  }
-
-  toggleObstacle(pose) {
-    const X = this.getX(pose.x);
-    const Y = this.getY(pose.y);
-    this._grid[X][Y] = !this._grid[X][Y];
-  }
-
-  getX(x) {
-    return parseInt(x);
-  }
-
-  getY(y) {
-    return parseInt(y);
-  }
-
-  isColliding(state) {
-    let stateGlobal = Object.assign({}, state);
-
-    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
-        stateGlobal);
-
-    const X = this.getX(stateGlobal.x);
-    const Y = this.getY(stateGlobal.y);
-
-    return this._grid[X][Y];
-  }
-
-  get grid() {
-    return this._grid;
-  }
-
-  get width() {
-    return this._width;
-  }
-
-  get height() {
-    return this._height;
-  }
-}
-module.exports.ObstacleGrid = ObstacleGrid;
-
 },{"./utils":7}],7:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
 },{"dup":5}],8:[function(require,module,exports){
@@ -2561,7 +2490,7 @@ window.getController = function() {
   return controller;
 };
 
-},{"./controller/controller":8,"./model/model":13,"./view/view":22}],10:[function(require,module,exports){
+},{"./controller/controller":8,"./model/model":14,"./view/view":24}],10:[function(require,module,exports){
 class Node {
   constructor(row, col, value) {
     this._id = String(row) + '-' + String(col);
@@ -2607,7 +2536,8 @@ class Node {
 }
 
 class AStar {
-  constructor(view, start, end, grid) { // grid = arr[arr[bool]]
+  constructor(draw, view, start, end, grid) { // grid = arr[arr[bool]]
+    this._draw = draw;
     this._view = view;
     this._start = start;
     this._end = end;
@@ -2644,7 +2574,7 @@ class AStar {
       const [node, idx] = this.getMinNode(this._openSet);
       this._openSet.splice(idx, 1);
       this._closedSet.push(node);
-      this._view.drawNodeAStarVisited(node.row, node.col);
+      this._draw && this._view.drawNodeAStarVisited(node.row, node.col);
       this._drawnNodes.push(node);
 
       const neighbors = this.getNeighbors(node, this._nodes);
@@ -2664,7 +2594,8 @@ class AStar {
               el.id === neighbor.id);
             if (foundInOpenSet === undefined) {
               this._openSet.push(neighbor);
-              this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
+              this._draw &&
+                  this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
               this._drawnNodes.push(neighbor);
             } else if (foundInOpenSet.distanceToEnd > neighbor.distanceToEnd) {
               foundInOpenSet = neighbor;
@@ -2689,7 +2620,7 @@ class AStar {
 
   clearNodes() {
     this._drawnNodes.forEach((node) => {
-      this._view.clearNodeDrawn(node.row, node.col);
+      this._draw && this._view.clearNodeDrawn(node.row, node.col);
     });
   }
 
@@ -2814,7 +2745,97 @@ class DistanceGrid {
 }
 module.exports.DistanceGrid = DistanceGrid;
 
-},{"../utils/utils":19}],12:[function(require,module,exports){
+},{"../utils/utils":21}],12:[function(require,module,exports){
+const Utils = require('../utils/utils').Utils;
+// const AStar = require('../model/astar').AStar;
+// eslint-disable-next-line no-unused-vars
+const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
+
+class DistanceToGoalGrid {
+  constructor(numberOfRows, numberOfCols, obstacleGrid, model) {
+    this._numberOfRows = numberOfRows;
+    this._numberOfCols = numberOfCols;
+    this._obstacleGrid = obstacleGrid;
+    this._model = model;
+
+    this._grid = [];
+    for (let row = 0; row < this._numberOfRows; row++) {
+      this._grid.push([]);
+      for (let col = 0; col < this._numberOfCols; col++) {
+        this._grid[row].push(0);
+      }
+    }
+  }
+
+  get grid() {
+    return this._grid;
+  }
+
+  getX(x) {
+    return parseInt(x);
+  }
+
+  getY(y) {
+    return parseInt(y);
+  }
+
+  getDistance(state) {
+    let stateGlobal = Object.assign({}, state);
+
+    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
+        stateGlobal);
+
+    const X = this.getX(stateGlobal.x);
+    const Y = this.getY(stateGlobal.y);
+
+    return this._grid[X][Y];
+  }
+
+  calculate(path) {
+    for (let row = 0; row < this._numberOfRows; row++) {
+      for (let col = 0; col < this._numberOfCols; col++) {
+        // let idxClosest = [];
+        // let minDistance = Number.MAX_VALUE;
+        // path.forEach((node, idx) => {
+        //   const astar = new AStar(false, undefined,
+        //       [row, col],
+        //       [node[0], node[1]],
+        //       this._obstacleGrid.grid);
+
+        //   while (!astar.isFinished()) {
+        //     astar.iterate();
+        //   }
+        //   console.log('Astar terminated.');
+
+        //   const path = astar.getPath();
+        //   if (path.length < minDistance) {
+        //     minDistance = path.length;
+        //     idxClosest = idx;
+        //   }
+        // });
+        // this._grid[row][col] = path.length - idxClosest - 1 + minDistance;
+        let closest = Number.MAX_VALUE;
+        let minDistance = Number.MAX_VALUE;
+        path.forEach((node, idx) => {
+          const dist = this.calculateDistance(row, col, node[0], node[1]);
+          if (dist < minDistance) {
+            minDistance = dist;
+            closest = idx;
+          }
+        });
+        this._grid[row][col] = path.length - closest - 1;
+      }
+    }
+  }
+
+  calculateDistance(startRow, startCol, endRow, endCol) {
+    return Math.abs(startRow - endRow) +
+        Math.abs(startCol - endCol);
+  }
+}
+module.exports.DistanceToGoalGrid = DistanceToGoalGrid;
+
+},{"../model/obstaclegrid":16,"../utils/utils":21}],13:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
 const StateFilter = require('./statefilter').StateFilter;
 const CarShape = require('../utils/datatypes').CarShape;
@@ -2823,10 +2844,11 @@ const Segment = require('../utils/datatypes').Segment;
 const Trajectory = require('../utils/datatypes').Trajectory;
 
 class Explorer {
-  constructor(view, goal, obstacles, distanceGrid) {
+  constructor(view, goal, obstacles, distanceGrid, distanceToGoalGrid) {
     this._goal = goal;
     this._obstacles = obstacles;
     this._distanceGrid = distanceGrid;
+    this._distanceToGoalGrid = distanceToGoalGrid;
     this._wheelBase = 2.64 / 2;
     this._timestep = 2.;
     this._intertime = 0.2;
@@ -2889,6 +2911,7 @@ class Explorer {
           } else {
             this.addCostDriving(newSegment);
             this.addCostDistanceToPath(newSegment);
+            this.addCostDistanceToGoal(newSegment);
           }
 
           this._segments[layerNumber+1].push(newSegment);
@@ -2908,7 +2931,7 @@ class Explorer {
     for (let i=0; i<this._segments[lastLayerIdx].length; ++i) {
       trajectories.push(this.getTrajectoryBacktraceSegment(i));
     }
-    this.addCostDistanceToGoal(trajectories);
+    this.addCostDistanceToGoalEuclidian(trajectories);
 
     return trajectories;
   }
@@ -2946,7 +2969,15 @@ class Explorer {
     segment.cost += cost;
   }
 
-  addCostDistanceToGoal(trajectories) {
+  addCostDistanceToGoal(segment) {
+    let cost = 0;
+    segment.states.forEach((state) => {
+      cost += this._distanceToGoalGrid.getDistance(state);
+    });
+    segment.cost += 10 * cost;
+  }
+
+  addCostDistanceToGoalEuclidian(trajectories) {
     trajectories.forEach((trajectory) => {
       const x = this._goal.x - trajectory.lastSegment.lastState.x;
       const y = this._goal.y - trajectory.lastSegment.lastState.y;
@@ -3050,15 +3081,17 @@ class Explorer {
 }
 module.exports.Explorer = Explorer;
 
-},{"../utils/datatypes":18,"../utils/utils":19,"./statefilter":16}],13:[function(require,module,exports){
+},{"../utils/datatypes":20,"../utils/utils":21,"./statefilter":18}],14:[function(require,module,exports){
 const Planner = require('./planner').Planner;
 const Motion = require('./motion').Motion;
 const Pose = require('../utils/datatypes').Pose;
 const State = require('../utils/datatypes').State;
-const ObstacleGrid = require('../utils/datatypes').ObstacleGrid;
+const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
 const Utils = require('../Utils/Utils').Utils;
 const AStar = require('../model/astar').AStar;
 const DistanceGrid = require('../model/distancegrid').DistanceGrid;
+const DistanceToGoalGrid =
+    require('../model/distancetogoal').DistanceToGoalGrid;
 
 class Model {
   constructor(view, width, height) {
@@ -3075,9 +3108,15 @@ class Model {
         height/ this._scale, this);
     this._distanceGrid = new DistanceGrid(parseInt(width/ this._scale),
         parseInt(height/ this._scale), this);
+    this._distanceToGoalGrid = new DistanceToGoalGrid(
+        parseInt(width/ this._scale), parseInt(height/ this._scale),
+        this._obstacleGrid, this);
 
-    this._planner = new Planner(view, this._obstacleGrid,
-        this._distanceGrid, this);
+    this._planner = new Planner(view,
+        this._obstacleGrid,
+        this._distanceGrid,
+        this._distanceToGoalGrid,
+        this);
     this._motion = new Motion(this._planner, view);
 
     this._layerTotalNumber = 2;
@@ -3134,7 +3173,7 @@ class Model {
 
   runPathPlanner() {
     if (!this._astarIsStarted) {
-      this._astar = new AStar(this._view,
+      this._astar = new AStar(true, this._view,
           [parseInt(this._ego.x), parseInt(this._ego.y)],
           [parseInt(this._goal.x), parseInt(this._goal.y)],
           this._obstacleGrid.grid);
@@ -3147,6 +3186,7 @@ class Model {
       const path = this._astar.getPath();
       this._view.drawPath(path);
       this._distanceGrid.calculate(path);
+      this._distanceToGoalGrid.calculate(path);
     }
   }
 
@@ -3246,7 +3286,7 @@ class Model {
 }
 module.exports.Model = Model;
 
-},{"../Utils/Utils":5,"../model/astar":10,"../model/distancegrid":11,"../utils/datatypes":18,"./motion":14,"./planner":15}],14:[function(require,module,exports){
+},{"../Utils/Utils":5,"../model/astar":10,"../model/distancegrid":11,"../model/distancetogoal":12,"../model/obstaclegrid":16,"../utils/datatypes":20,"./motion":15,"./planner":17}],15:[function(require,module,exports){
 const colorMap = require('../Utils/datatypes').colorMap;
 const State = require('../Utils/datatypes').State;
 
@@ -3315,16 +3355,91 @@ class Motion {
 }
 module.exports.Motion = Motion;
 
-},{"../Utils/datatypes":6}],15:[function(require,module,exports){
+},{"../Utils/datatypes":6}],16:[function(require,module,exports){
+const Utils = require('../utils/utils').Utils;
+
+class ObstacleGrid {
+  constructor(width, height, model) {
+    this._width = width;
+    this._height = height;
+    this._model = model;
+    this._grid = this.createObstacleGrid();
+  }
+
+  createObstacleGrid() {
+    const grid = [];
+
+    for (let i=0; i<this._width; ++i) {
+      grid.push([]);
+      for (let j=0; j<this._height; ++j) {
+        grid[i].push(false);
+      }
+    }
+
+    return grid;
+  }
+
+  clear() {
+    this._grid = Object.assign({}, this.createObstacleGrid());
+  }
+
+  setObstacle(pose) {
+    const X = this.getX(pose.x);
+    const Y = this.getY(pose.y);
+    this._grid[X][Y] = true;
+  }
+
+  toggleObstacle(pose) {
+    const X = this.getX(pose.x);
+    const Y = this.getY(pose.y);
+    this._grid[X][Y] = !this._grid[X][Y];
+  }
+
+  getX(x) {
+    return parseInt(x);
+  }
+
+  getY(y) {
+    return parseInt(y);
+  }
+
+  isColliding(state) {
+    let stateGlobal = Object.assign({}, state);
+
+    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
+        stateGlobal);
+
+    const X = this.getX(stateGlobal.x);
+    const Y = this.getY(stateGlobal.y);
+
+    return this._grid[X][Y];
+  }
+
+  get grid() {
+    return this._grid;
+  }
+
+  get width() {
+    return this._width;
+  }
+
+  get height() {
+    return this._height;
+  }
+}
+module.exports.ObstacleGrid = ObstacleGrid;
+
+},{"../utils/utils":21}],17:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
 const Explorer = require('./explorer').Explorer;
 
 class Planner {
-  constructor(view, obstacleGrid, distanceGrid, model) {
+  constructor(view, obstacleGrid, distanceGrid, distanceToGoalGrid, model) {
     this._view = view;
     this._explorer = null;
     this._obstacleGrid = obstacleGrid;
     this._distanceGrid = distanceGrid;
+    this._distanceToGoalGrid = distanceToGoalGrid;
     this._model = model;
     this._trajectories = [];
     this.reset();
@@ -3364,6 +3479,7 @@ class Planner {
         this._model.getGoal(),
         this._obstacleGrid,
         this._distanceGrid,
+        this._distanceToGoalGrid,
     );
     this._lastTrajectory = [];
     this._trajectories = [];
@@ -3420,7 +3536,7 @@ class Planner {
 }
 module.exports.Planner = Planner;
 
-},{"../utils/datatypes":18,"./explorer":12}],16:[function(require,module,exports){
+},{"../utils/datatypes":20,"./explorer":13}],18:[function(require,module,exports){
 class StateFilter {
   constructor(view, numberOfStatesPerLayer) {
     this._view = view;
@@ -3519,7 +3635,7 @@ class StateFilter {
 }
 module.exports.StateFilter = StateFilter;
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 (function (Buffer){(function (){
 /* build: `node build.js modules=ALL exclude=gestures,accessors requirejs minifier=uglifyjs` */
 /*! Fabric.js Copyright 2008-2015, Printio (Juriy Zaytsev, Maxim Chernyak) */
@@ -33984,11 +34100,11 @@ fabric.util.object.extend(fabric.IText.prototype, /** @lends fabric.IText.protot
 
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"buffer":3,"jsdom":2,"jsdom/lib/jsdom/living/generated/utils":2,"jsdom/lib/jsdom/utils":2}],18:[function(require,module,exports){
+},{"buffer":3,"jsdom":2,"jsdom/lib/jsdom/living/generated/utils":2,"jsdom/lib/jsdom/utils":2}],20:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"./utils":19,"dup":6}],19:[function(require,module,exports){
+},{"./utils":21,"dup":6}],21:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],20:[function(require,module,exports){
+},{"dup":5}],22:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
 
 class Grid {
@@ -34088,7 +34204,7 @@ class Grid {
 };
 module.exports.Grid = Grid;
 
-},{"../utils/datatypes":18}],21:[function(require,module,exports){
+},{"../utils/datatypes":20}],23:[function(require,module,exports){
 let canObstacleBePlaced = true;
 let isPlaceObstacleEnabled = false;
 
@@ -34134,7 +34250,7 @@ const Listener = {
 };
 module.exports.Listener = Listener;
 
-},{}],22:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 const fabric = require('fabric').fabric;
 const Utils = require('../Utils/Utils').Utils;
 const colorMap = require('../Utils/datatypes').colorMap;
@@ -34542,4 +34658,4 @@ class View {
 }
 module.exports.View = View;
 
-},{"../Utils/Utils":5,"../Utils/datatypes":6,"./grid":20,"./listener":21,"fabric":17}]},{},[9]);
+},{"../Utils/Utils":5,"../Utils/datatypes":6,"./grid":22,"./listener":23,"fabric":19}]},{},[9]);

@@ -43,7 +43,8 @@ class Node {
 }
 
 class AStar {
-  constructor(view, start, end, grid) { // grid = arr[arr[bool]]
+  constructor(draw, view, start, end, grid) { // grid = arr[arr[bool]]
+    this._draw = draw;
     this._view = view;
     this._start = start;
     this._end = end;
@@ -80,7 +81,7 @@ class AStar {
       const [node, idx] = this.getMinNode(this._openSet);
       this._openSet.splice(idx, 1);
       this._closedSet.push(node);
-      this._view.drawNodeAStarVisited(node.row, node.col);
+      this._draw && this._view.drawNodeAStarVisited(node.row, node.col);
       this._drawnNodes.push(node);
 
       const neighbors = this.getNeighbors(node, this._nodes);
@@ -100,7 +101,8 @@ class AStar {
               el.id === neighbor.id);
             if (foundInOpenSet === undefined) {
               this._openSet.push(neighbor);
-              this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
+              this._draw &&
+                  this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
               this._drawnNodes.push(neighbor);
             } else if (foundInOpenSet.distanceToEnd > neighbor.distanceToEnd) {
               foundInOpenSet = neighbor;
@@ -125,7 +127,7 @@ class AStar {
 
   clearNodes() {
     this._drawnNodes.forEach((node) => {
-      this._view.clearNodeDrawn(node.row, node.col);
+      this._draw && this._view.clearNodeDrawn(node.row, node.col);
     });
   }
 

@@ -2,10 +2,12 @@ const Planner = require('./planner').Planner;
 const Motion = require('./motion').Motion;
 const Pose = require('../utils/datatypes').Pose;
 const State = require('../utils/datatypes').State;
-const ObstacleGrid = require('../utils/datatypes').ObstacleGrid;
+const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
 const Utils = require('../Utils/Utils').Utils;
 const AStar = require('../model/astar').AStar;
 const DistanceGrid = require('../model/distancegrid').DistanceGrid;
+const DistanceToGoalGrid =
+    require('../model/distancetogoal').DistanceToGoalGrid;
 
 class Model {
   constructor(view, width, height) {
@@ -22,9 +24,15 @@ class Model {
         height/ this._scale, this);
     this._distanceGrid = new DistanceGrid(parseInt(width/ this._scale),
         parseInt(height/ this._scale), this);
+    this._distanceToGoalGrid = new DistanceToGoalGrid(
+        parseInt(width/ this._scale), parseInt(height/ this._scale),
+        this._obstacleGrid, this);
 
-    this._planner = new Planner(view, this._obstacleGrid,
-        this._distanceGrid, this);
+    this._planner = new Planner(view,
+        this._obstacleGrid,
+        this._distanceGrid,
+        this._distanceToGoalGrid,
+        this);
     this._motion = new Motion(this._planner, view);
 
     this._layerTotalNumber = 2;
@@ -81,7 +89,7 @@ class Model {
 
   runPathPlanner() {
     if (!this._astarIsStarted) {
-      this._astar = new AStar(this._view,
+      this._astar = new AStar(true, this._view,
           [parseInt(this._ego.x), parseInt(this._ego.y)],
           [parseInt(this._goal.x), parseInt(this._goal.y)],
           this._obstacleGrid.grid);
@@ -94,6 +102,7 @@ class Model {
       const path = this._astar.getPath();
       this._view.drawPath(path);
       this._distanceGrid.calculate(path);
+      this._distanceToGoalGrid.calculate(path);
     }
   }
 
