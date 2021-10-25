@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/n4bla/explorative-trajectory-planner.git"
+    "url": "git+https://github.com/marcelritzschke/explorative-trajectory-planner.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "",
   "bugs": {
-    "url": "https://github.com/n4bla/explorative-trajectory-planner/issues"
+    "url": "https://github.com/marcelritzschke/explorative-trajectory-planner/issues"
   },
-  "homepage": "https://github.com/n4bla/explorative-trajectory-planner#readme",
+  "homepage": "https://github.com/marcelritzschke/explorative-trajectory-planner#readme",
   "devDependencies": {
     "eslint": "^7.27.0",
     "eslint-config-google": "^0.14.0"
