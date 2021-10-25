@@ -19,7 +19,6 @@
         <div onclick="toggleSettings()">
             <label for="settingsToggle" id="settingsButton" class="settingsbutton">☰</label>
         </div>
-        <div onclick="getController().makePath()">Path</div>
         <div class="control">
             <div onclick="getController().step()" class="step-button"></div>
             <div onclick="getController().play()" class="play-button"></div>
@@ -82,6 +81,13 @@
             <div class="inputSlider">
                 <input id="drawExploration" type="checkbox" checked onchange="getController().updateDrawExploration()"/>
             </div>
+            <div class="inputText" style="font-size:x-small;">_____________________</div>
+            <div class="inputButton">
+                <button id="makePath" onclick="getController().makePath()">
+                    Plan Path
+                </button>
+            </div>
+            <div class="inputText" style="font-size:x-small;">_____________________</div>
         </div>
         <div>
             <canvas id="mainView" class="canvas"></canvas>

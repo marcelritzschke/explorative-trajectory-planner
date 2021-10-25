@@ -71,14 +71,14 @@ header {
     left:0;
 }
 #settingsToggle:checked + .settings {
-    visibility: visible;
+    visibility: hidden;
 }   
 .settings {
     width: 200px;
     height: 90%;
     position: fixed;
     z-index: 1;
-    visibility: hidden;
+    visibility: visible;
     border: 1px solid rgb(5, 46, 107);
     border-radius: 5px;
     font-size: small;

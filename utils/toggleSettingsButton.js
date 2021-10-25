@@ -2,7 +2,7 @@
 function toggleSettings() {
   const checkbox = document.getElementById('settingsToggle');
   const label = document.getElementById('settingsButton');
-  if (!checkbox.checked) {
+  if (checkbox.checked) {
     label.className = 'settingsbuttonToggled';
   } else {
     label.className = 'settingsbutton';
