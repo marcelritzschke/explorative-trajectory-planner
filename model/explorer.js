@@ -6,7 +6,9 @@ const Segment = require('../utils/datatypes').Segment;
 const Trajectory = require('../utils/datatypes').Trajectory;
 
 class Explorer {
-  constructor(view, goal, obstacles, distanceGrid, distanceToGoalGrid) {
+  constructor(view, parameters, goal, obstacles, distanceGrid,
+      distanceToGoalGrid) {
+    this._parameters = parameters;
     this._goal = goal;
     this._obstacles = obstacles;
     this._distanceGrid = distanceGrid;
@@ -120,7 +122,7 @@ class Explorer {
       cost += Math.abs(state.v);
       cost += Math.abs(state.steeringAngle);
     });
-    segment.cost += cost;
+    segment.cost += this._parameters.costDriving * cost;
   }
 
   addCostDistanceToPath(segment) {
@@ -128,7 +130,7 @@ class Explorer {
     segment.states.forEach((state) => {
       cost += this._distanceGrid.getDistance(state);
     });
-    segment.cost += cost;
+    segment.cost += Math.pow(this._parameters.costDistanceToPath * cost, 2);
   }
 
   addCostDistanceToGoal(segment) {
@@ -136,7 +138,7 @@ class Explorer {
     segment.states.forEach((state) => {
       cost += this._distanceToGoalGrid.getDistance(state);
     });
-    segment.cost += 10 * cost;
+    segment.cost += this._parameters.costDistanceToGoal * cost;
   }
 
   addCostDistanceToGoalEuclidian(trajectories) {
@@ -144,7 +146,8 @@ class Explorer {
       const x = this._goal.x - trajectory.lastSegment.lastState.x;
       const y = this._goal.y - trajectory.lastSegment.lastState.y;
       const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-      trajectory.cost += distance * 10;
+      trajectory.cost +=
+          this._parameters.costDistanceToGoalEuclidian * distance;
 
       if (distance <= this._goalTolerance) {
         trajectory.isReachGoal = true;

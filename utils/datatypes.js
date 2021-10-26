@@ -184,3 +184,45 @@ class Shape {
   }
 }
 module.exports.Shape = Shape;
+
+class Parameters {
+  constructor() {
+    this._costDriving = 1.;
+    this._costDistanceToPath = 1.;
+    this._costDistanceToGoal = 10.;
+    this._costDistanceToGoalEuclidian = 10.;
+  }
+
+  get costDriving() {
+    return this._costDriving;
+  }
+
+  get costDistanceToPath() {
+    return this._costDistanceToPath;
+  }
+
+  get costDistanceToGoal() {
+    return this._costDistanceToGoal;
+  }
+
+  get costDistanceToGoalEuclidian() {
+    return this._costDistanceToGoalEuclidian;
+  }
+
+  set costDriving(value) {
+    this._costDriving = value;
+  }
+
+  set costDistanceToPath(value) {
+    this._costDistanceToPath = value;
+  }
+
+  set costDistanceToGoal(value) {
+    this._costDistanceToGoal = value;
+  }
+
+  set costDistanceToGoalEuclidian(value) {
+    this._costDistanceToGoalEuclidian = value;
+  }
+}
+module.exports.Parameters = Parameters;

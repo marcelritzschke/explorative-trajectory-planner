@@ -8,10 +8,12 @@ const AStar = require('../model/astar').AStar;
 const DistanceGrid = require('../model/distancegrid').DistanceGrid;
 const DistanceToGoalGrid =
     require('../model/distancetogoal').DistanceToGoalGrid;
+const Parameters = require('../utils/datatypes').Parameters;
 
 class Model {
   constructor(view, width, height) {
     this._view = view;
+    this._parameters = new Parameters();
     this._scale = 20;
     this._width = width;
     this._height = height;
@@ -29,6 +31,7 @@ class Model {
         this._obstacleGrid, this);
 
     this._planner = new Planner(view,
+        this._parameters,
         this._obstacleGrid,
         this._distanceGrid,
         this._distanceToGoalGrid,
@@ -161,6 +164,10 @@ class Model {
 
   get scale() {
     return this._scale;
+  }
+
+  get parameters() {
+    return this._parameters;
   }
 
   set scale(value) {

@@ -110,5 +110,25 @@ class Controller {
   deleteMap() {
     this._model.deleteMap();
   }
+
+  updateCostDriving() {
+    this._model.parameters.costDriving =
+        parseFloat(document.getElementById('costDriving').value);
+  }
+
+  updateCostDistanceToPath() {
+    this._model.parameters.costDistanceToPath =
+        parseFloat(document.getElementById('costDistanceToPath').value);
+  }
+
+  updateCostDistanceToGoal() {
+    this._model.parameters.costDistanceToGoal =
+        parseFloat(document.getElementById('costDistanceToGoal').value);
+  }
+
+  updateCostDistanceToGoalEuclidian() {
+    this._model.parameters.costDistanceToGoalEuclidian = parseFloat(
+        document.getElementById('costDistanceToGoalEuclidian').value);
+  }
 }
 module.exports.Controller = Controller;

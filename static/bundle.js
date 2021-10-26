@@ -2313,6 +2313,48 @@ class Shape {
 }
 module.exports.Shape = Shape;
 
+class Parameters {
+  constructor() {
+    this._costDriving = 1.;
+    this._costDistanceToPath = 1.;
+    this._costDistanceToGoal = 10.;
+    this._costDistanceToGoalEuclidian = 10.;
+  }
+
+  get costDriving() {
+    return this._costDriving;
+  }
+
+  get costDistanceToPath() {
+    return this._costDistanceToPath;
+  }
+
+  get costDistanceToGoal() {
+    return this._costDistanceToGoal;
+  }
+
+  get costDistanceToGoalEuclidian() {
+    return this._costDistanceToGoalEuclidian;
+  }
+
+  set costDriving(value) {
+    this._costDriving = value;
+  }
+
+  set costDistanceToPath(value) {
+    this._costDistanceToPath = value;
+  }
+
+  set costDistanceToGoal(value) {
+    this._costDistanceToGoal = value;
+  }
+
+  set costDistanceToGoalEuclidian(value) {
+    this._costDistanceToGoalEuclidian = value;
+  }
+}
+module.exports.Parameters = Parameters;
+
 },{"./utils":7}],7:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
 },{"dup":5}],8:[function(require,module,exports){
@@ -2427,6 +2469,26 @@ class Controller {
 
   deleteMap() {
     this._model.deleteMap();
+  }
+
+  updateCostDriving() {
+    this._model.parameters.costDriving =
+        parseFloat(document.getElementById('costDriving').value);
+  }
+
+  updateCostDistanceToPath() {
+    this._model.parameters.costDistanceToPath =
+        parseFloat(document.getElementById('costDistanceToPath').value);
+  }
+
+  updateCostDistanceToGoal() {
+    this._model.parameters.costDistanceToGoal =
+        parseFloat(document.getElementById('costDistanceToGoal').value);
+  }
+
+  updateCostDistanceToGoalEuclidian() {
+    this._model.parameters.costDistanceToGoalEuclidian = parseFloat(
+        document.getElementById('costDistanceToGoalEuclidian').value);
   }
 }
 module.exports.Controller = Controller;
@@ -2844,7 +2906,9 @@ const Segment = require('../utils/datatypes').Segment;
 const Trajectory = require('../utils/datatypes').Trajectory;
 
 class Explorer {
-  constructor(view, goal, obstacles, distanceGrid, distanceToGoalGrid) {
+  constructor(view, parameters, goal, obstacles, distanceGrid,
+      distanceToGoalGrid) {
+    this._parameters = parameters;
     this._goal = goal;
     this._obstacles = obstacles;
     this._distanceGrid = distanceGrid;
@@ -2958,7 +3022,7 @@ class Explorer {
       cost += Math.abs(state.v);
       cost += Math.abs(state.steeringAngle);
     });
-    segment.cost += cost;
+    segment.cost += this._parameters.costDriving * cost;
   }
 
   addCostDistanceToPath(segment) {
@@ -2966,7 +3030,7 @@ class Explorer {
     segment.states.forEach((state) => {
       cost += this._distanceGrid.getDistance(state);
     });
-    segment.cost += cost;
+    segment.cost += Math.pow(this._parameters.costDistanceToPath * cost, 2);
   }
 
   addCostDistanceToGoal(segment) {
@@ -2974,7 +3038,7 @@ class Explorer {
     segment.states.forEach((state) => {
       cost += this._distanceToGoalGrid.getDistance(state);
     });
-    segment.cost += 10 * cost;
+    segment.cost += this._parameters.costDistanceToGoal * cost;
   }
 
   addCostDistanceToGoalEuclidian(trajectories) {
@@ -2982,7 +3046,8 @@ class Explorer {
       const x = this._goal.x - trajectory.lastSegment.lastState.x;
       const y = this._goal.y - trajectory.lastSegment.lastState.y;
       const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-      trajectory.cost += distance * 10;
+      trajectory.cost +=
+          this._parameters.costDistanceToGoalEuclidian * distance;
 
       if (distance <= this._goalTolerance) {
         trajectory.isReachGoal = true;
@@ -3092,10 +3157,12 @@ const AStar = require('../model/astar').AStar;
 const DistanceGrid = require('../model/distancegrid').DistanceGrid;
 const DistanceToGoalGrid =
     require('../model/distancetogoal').DistanceToGoalGrid;
+const Parameters = require('../utils/datatypes').Parameters;
 
 class Model {
   constructor(view, width, height) {
     this._view = view;
+    this._parameters = new Parameters();
     this._scale = 20;
     this._width = width;
     this._height = height;
@@ -3113,6 +3180,7 @@ class Model {
         this._obstacleGrid, this);
 
     this._planner = new Planner(view,
+        this._parameters,
         this._obstacleGrid,
         this._distanceGrid,
         this._distanceToGoalGrid,
@@ -3245,6 +3313,10 @@ class Model {
 
   get scale() {
     return this._scale;
+  }
+
+  get parameters() {
+    return this._parameters;
   }
 
   set scale(value) {
@@ -3434,8 +3506,10 @@ const colorMap = require('../utils/datatypes').colorMap;
 const Explorer = require('./explorer').Explorer;
 
 class Planner {
-  constructor(view, obstacleGrid, distanceGrid, distanceToGoalGrid, model) {
+  constructor(view, parameters, obstacleGrid, distanceGrid,
+      distanceToGoalGrid, model) {
     this._view = view;
+    this._parameters = parameters;
     this._explorer = null;
     this._obstacleGrid = obstacleGrid;
     this._distanceGrid = distanceGrid;
@@ -3476,6 +3550,7 @@ class Planner {
   reset() {
     this._explorer = new Explorer(
         this._view,
+        this._parameters,
         this._model.getGoal(),
         this._obstacleGrid,
         this._distanceGrid,
