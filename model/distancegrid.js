@@ -1,10 +1,11 @@
 const Utils = require('../utils/utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
 
 class DistanceGrid {
-  constructor(numberOfRows, numberOfCols, model) {
+  constructor(numberOfRows, numberOfCols) {
     this._numberOfRows = numberOfRows;
     this._numberOfCols = numberOfCols;
-    this._model = model;
+    this._ego = new Pose();
 
     this._grid = [];
     for (let row = 0; row < this._numberOfRows; row++) {
@@ -19,6 +20,10 @@ class DistanceGrid {
     return this._grid;
   }
 
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
   getX(x) {
     return parseInt(x);
   }
@@ -30,8 +35,7 @@ class DistanceGrid {
   getDistance(state) {
     let stateGlobal = Object.assign({}, state);
 
-    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
-        stateGlobal);
+    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
 
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);

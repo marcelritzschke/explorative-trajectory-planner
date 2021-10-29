@@ -1,18 +1,16 @@
 const colorMap = require('../utils/datatypes').colorMap;
-const Explorer = require('./explorer').Explorer;
+const Utils = require('../Utils/Utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
 
 class Planner {
-  constructor(view, parameters, obstacleGrid, distanceGrid,
-      distanceToGoalGrid, model) {
+  constructor(view, parameters, explorer) {
     this._view = view;
     this._parameters = parameters;
-    this._explorer = null;
-    this._obstacleGrid = obstacleGrid;
-    this._distanceGrid = distanceGrid;
-    this._distanceToGoalGrid = distanceToGoalGrid;
-    this._model = model;
+    this._explorer = explorer;
+    this._lastTrajectory = [];
     this._trajectories = [];
-    this.reset();
+    this._ego = new Pose();
+    this._goalGlobal = new Pose();
   }
 
   get lastTrajectory() {
@@ -43,15 +41,16 @@ class Planner {
     this._explorer.steeringAngles = value;
   }
 
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
+  updateGoal(goal) {
+    this._goalGlobal = goal;
+    this._explorer.updateGoal(Utils.transformObjectToUsk(this._ego, goal));
+  }
+
   reset() {
-    this._explorer = new Explorer(
-        this._view,
-        this._parameters,
-        this._model.getGoal(),
-        this._obstacleGrid,
-        this._distanceGrid,
-        this._distanceToGoalGrid,
-    );
     this._lastTrajectory = [];
     this._trajectories = [];
   }
@@ -62,7 +61,7 @@ class Planner {
     }
 
     this._lastTrajectory = this._explorer.getBestTrajectory(this._trajectories);
-    this._lastTrajectory.origin = this._model.getEgo();
+    this._lastTrajectory.origin = this._ego;
     this._lastTrajectory.time = timer;
 
     this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
@@ -76,7 +75,9 @@ class Planner {
       return;
     }
 
-    this._explorer.reset(this._model.getGoal());
+    this._explorer.reset();
+    this._explorer.updateGoal(
+        Utils.transformObjectToUsk(this._ego, this._goalGlobal));
     this._explorer.setInitialState(initialState);
     for (let i=0; i<layerTotalNumber; ++i) {
       this._explorer.iterateLayer(i);

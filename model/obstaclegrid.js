@@ -1,11 +1,16 @@
 const Utils = require('../utils/utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
 
 class ObstacleGrid {
-  constructor(width, height, model) {
+  constructor(width, height) {
     this._width = width;
     this._height = height;
-    this._model = model;
+    this._ego = new Pose();
     this._grid = this.createObstacleGrid();
+  }
+
+  updateEgo(ego) {
+    this._ego = ego;
   }
 
   createObstacleGrid() {
@@ -48,8 +53,7 @@ class ObstacleGrid {
   isColliding(state) {
     let stateGlobal = Object.assign({}, state);
 
-    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
-        stateGlobal);
+    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
 
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);

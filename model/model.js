@@ -1,42 +1,37 @@
-const Planner = require('./planner').Planner;
-const Motion = require('./motion').Motion;
 const Pose = require('../utils/datatypes').Pose;
 const State = require('../utils/datatypes').State;
-const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
 const Utils = require('../Utils/Utils').Utils;
 const AStar = require('../model/astar').AStar;
-const DistanceGrid = require('../model/distancegrid').DistanceGrid;
-const DistanceToGoalGrid =
-    require('../model/distancetogoal').DistanceToGoalGrid;
-const Parameters = require('../utils/datatypes').Parameters;
 
 class Model {
-  constructor(view, width, height) {
+  constructor(view,
+      width,
+      height,
+      obstacleGrid,
+      distanceGrid,
+      distanceToGoalGrid,
+      parameters,
+      planner,
+      motion,
+  ) {
     this._view = view;
-    this._parameters = new Parameters();
+
     this._scale = 20;
     this._width = width;
     this._height = height;
+
     this._ego = Utils.convertToMetric(this._scale,
         new Pose(width/ 4, height/ 8, 110));
     this._goal = Utils.convertToMetric(this._scale,
         new Pose(width * .75, height/ 8));
     this._lastMovedEgo = Object.assign({}, this._ego);
-    this._obstacleGrid = new ObstacleGrid(width/ this._scale,
-        height/ this._scale, this);
-    this._distanceGrid = new DistanceGrid(parseInt(width/ this._scale),
-        parseInt(height/ this._scale), this);
-    this._distanceToGoalGrid = new DistanceToGoalGrid(
-        parseInt(width/ this._scale), parseInt(height/ this._scale),
-        this._obstacleGrid, this);
 
-    this._planner = new Planner(view,
-        this._parameters,
-        this._obstacleGrid,
-        this._distanceGrid,
-        this._distanceToGoalGrid,
-        this);
-    this._motion = new Motion(this._planner, view);
+    this._obstacleGrid = obstacleGrid;
+    this._distanceGrid = distanceGrid;
+    this._distanceToGoalGrid = distanceToGoalGrid;
+    this._parameters = parameters;
+    this._planner = planner;
+    this._motion = motion;
 
     this._layerTotalNumber = 2;
     this._baseFrequency_ms = 50;
@@ -48,19 +43,32 @@ class Model {
     this._astarIsFinished = false;
     this._astarIsStarted = false;
 
-    this._view.updateGoal(Utils.convertToPixels(this._scale, this._goal));
-    this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
+    this.updateEgo(this._ego);
+    this.updateGoal(this._goal);
   }
 
   setEgo(x, y, angle) {
     this._ego = Utils.convertToMetric(this._scale, new Pose(x, y, angle));
     Object.assign(this._lastMovedEgo, this._ego);
-    this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
+    this.updateEgo(this._ego);
+  }
+
+  updateEgo(ego) {
+    this._view.updateEgo(Utils.convertToPixels(this._scale, ego));
+    this._obstacleGrid.updateEgo(ego);
+    this._distanceGrid.updateEgo(ego);
+    this._distanceToGoalGrid.updateEgo(ego);
+    this._planner.updateEgo(ego);
   }
 
   setGoal(x, y, angle) {
     this._goal = Utils.convertToMetric(this._scale, new Pose(x, y, angle));
-    this._view.updateGoal(Utils.convertToPixels(this._scale, this._goal));
+    this.updateGoal(this._goal);
+  }
+
+  updateGoal(goal) {
+    this._view.updateGoal(Utils.convertToPixels(this._scale, goal));
+    this._planner.updateGoal(goal);
   }
 
   setObstacle(x, y) {
@@ -121,7 +129,7 @@ class Model {
       this._ego = this.getEgoFromState();
     }
 
-    this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
+    this.updateEgo(this._ego);
     this._view.updateTimerOnScreen(timer);
     this._view.render();
   }
@@ -148,14 +156,6 @@ class Model {
   deleteMap() {
     this._obstacleGrid.clear();
     this._view.clearAllObstacles();
-  }
-
-  getEgo() {
-    return this._ego;
-  }
-
-  getGoal() {
-    return Utils.transformObjectToUsk(this._ego, this._goal);
   }
 
   escapeKeyPressed() {

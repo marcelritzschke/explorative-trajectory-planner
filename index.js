@@ -1,12 +1,11 @@
-const View = require('./view/view').View;
-const Model = require('./model/model').Model;
-const Controller = require('./controller/controller').Controller;
+const Builder = require('./builder/builder').Builder;
 
 window.initialize = function() {
   const elem = document.querySelector('.canvas');
   const style = getComputedStyle(elem);
   const width = parseFloat(style.width);
   const height = parseFloat(style.height);
+  const scale = 20; // pixel per meter
 
   canvas = new fabric.Canvas('mainView', {
     width: width,
@@ -15,26 +14,11 @@ window.initialize = function() {
     selection: false,
   });
 
-  initializeView(canvas);
-  initializeModel(width, height);
-  initializeController();
+  builder = new Builder(canvas, scale);
+  builder.build();
 };
 let canvas;
-
-initializeView = function(canvas) {
-  view = new View(canvas);
-};
-let view;
-
-initializeModel = function(width, height) {
-  model = new Model(view, width, height);
-};
-let model;
-
-initializeController = function() {
-  controller = new Controller(model);
-};
-let controller;
+let builder;
 
 // eslint-disable-next-line no-unused-vars
 window.getCanvas = function() {
@@ -43,15 +27,15 @@ window.getCanvas = function() {
 
 // eslint-disable-next-line no-unused-vars
 window.getView = function() {
-  return view;
+  return builder.getView();
 };
 
 // eslint-disable-next-line no-unused-vars
 window.getModel = function() {
-  return model;
+  return builder.getModel();
 };
 
 // eslint-disable-next-line no-unused-vars
 window.getController = function() {
-  return controller;
+  return builder.getController();
 };

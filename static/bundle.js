@@ -2358,6 +2358,94 @@ module.exports.Parameters = Parameters;
 },{"./utils":7}],7:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
 },{"dup":5}],8:[function(require,module,exports){
+const View = require('../view/view').View;
+const Model = require('../model/model').Model;
+const Controller = require('../controller/controller').Controller;
+const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
+const DistanceGrid = require('../model/distancegrid').DistanceGrid;
+const DistanceToGoalGrid =
+    require('../model/distancetogoal').DistanceToGoalGrid;
+const Parameters = require('../utils/datatypes').Parameters;
+const Planner = require('../model/planner').Planner;
+const Motion = require('../model/motion').Motion;
+const Explorer = require('../model/explorer').Explorer;
+
+class Builder {
+  constructor(canvas, scale) {
+    this._canvas = canvas;
+    this._scale = scale;
+    this._width = canvas.width;
+    this._height = canvas.height;
+  }
+
+  build() {
+    // View
+    this._view = new View(this._canvas);
+
+    // Model
+    this._obstacleGrid = new ObstacleGrid(
+        this._width/ this._scale,
+        this._height/ this._scale,
+    );
+
+    this._distanceGrid = new DistanceGrid(
+        parseInt(this._width/ this._scale),
+        parseInt(this._height/ this._scale),
+    );
+
+    this._distanceToGoalGrid = new DistanceToGoalGrid(
+        parseInt(this._width/ this._scale),
+        parseInt(this._height/ this._scale),
+        this._obstacleGrid,
+    );
+
+    this._parameters = new Parameters();
+
+    this._explorer = new Explorer(
+        this._view,
+        this._parameters,
+        this._obstacleGrid,
+        this._distanceGrid,
+        this._distanceToGoalGrid,
+    );
+
+    this._planner = new Planner(this._view,
+        this._parameters,
+        this._explorer,
+    );
+
+    this._motion = new Motion(this._planner, this._view);
+
+    this._model = new Model(this._view,
+        this._width,
+        this._height,
+        this._obstacleGrid,
+        this._distanceGrid,
+        this._distanceToGoalGrid,
+        this._parameters,
+        this._planner,
+        this._motion,
+    );
+
+    // Controller
+    this._controller = new Controller(this._model);
+  }
+
+  getModel() {
+    return this._model;
+  }
+
+  getView() {
+    return this._view;
+  }
+
+  getController() {
+    return this._controller;
+  }
+}
+module.exports.Builder = Builder;
+
+},{"../controller/controller":9,"../model/distancegrid":12,"../model/distancetogoal":13,"../model/explorer":14,"../model/model":15,"../model/motion":16,"../model/obstaclegrid":17,"../model/planner":18,"../utils/datatypes":21,"../view/view":25}],9:[function(require,module,exports){
 class Controller {
   constructor(model) {
     this._model = model;
@@ -2493,16 +2581,15 @@ class Controller {
 }
 module.exports.Controller = Controller;
 
-},{}],9:[function(require,module,exports){
-const View = require('./view/view').View;
-const Model = require('./model/model').Model;
-const Controller = require('./controller/controller').Controller;
+},{}],10:[function(require,module,exports){
+const Builder = require('./builder/builder').Builder;
 
 window.initialize = function() {
   const elem = document.querySelector('.canvas');
   const style = getComputedStyle(elem);
   const width = parseFloat(style.width);
   const height = parseFloat(style.height);
+  const scale = 20; // pixel per meter
 
   canvas = new fabric.Canvas('mainView', {
     width: width,
@@ -2511,26 +2598,11 @@ window.initialize = function() {
     selection: false,
   });
 
-  initializeView(canvas);
-  initializeModel(width, height);
-  initializeController();
+  builder = new Builder(canvas, scale);
+  builder.build();
 };
 let canvas;
-
-initializeView = function(canvas) {
-  view = new View(canvas);
-};
-let view;
-
-initializeModel = function(width, height) {
-  model = new Model(view, width, height);
-};
-let model;
-
-initializeController = function() {
-  controller = new Controller(model);
-};
-let controller;
+let builder;
 
 // eslint-disable-next-line no-unused-vars
 window.getCanvas = function() {
@@ -2539,20 +2611,20 @@ window.getCanvas = function() {
 
 // eslint-disable-next-line no-unused-vars
 window.getView = function() {
-  return view;
+  return builder.getView();
 };
 
 // eslint-disable-next-line no-unused-vars
 window.getModel = function() {
-  return model;
+  return builder.getModel();
 };
 
 // eslint-disable-next-line no-unused-vars
 window.getController = function() {
-  return controller;
+  return builder.getController();
 };
 
-},{"./controller/controller":8,"./model/model":14,"./view/view":24}],10:[function(require,module,exports){
+},{"./builder/builder":8}],11:[function(require,module,exports){
 class Node {
   constructor(row, col, value) {
     this._id = String(row) + '-' + String(col);
@@ -2745,14 +2817,15 @@ class AStar {
 }
 module.exports.AStar = AStar;
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
 
 class DistanceGrid {
-  constructor(numberOfRows, numberOfCols, model) {
+  constructor(numberOfRows, numberOfCols) {
     this._numberOfRows = numberOfRows;
     this._numberOfCols = numberOfCols;
-    this._model = model;
+    this._ego = new Pose();
 
     this._grid = [];
     for (let row = 0; row < this._numberOfRows; row++) {
@@ -2767,6 +2840,10 @@ class DistanceGrid {
     return this._grid;
   }
 
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
   getX(x) {
     return parseInt(x);
   }
@@ -2778,8 +2855,7 @@ class DistanceGrid {
   getDistance(state) {
     let stateGlobal = Object.assign({}, state);
 
-    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
-        stateGlobal);
+    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
 
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);
@@ -2807,18 +2883,16 @@ class DistanceGrid {
 }
 module.exports.DistanceGrid = DistanceGrid;
 
-},{"../utils/utils":21}],12:[function(require,module,exports){
+},{"../utils/datatypes":21,"../utils/utils":22}],13:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
-// const AStar = require('../model/astar').AStar;
-// eslint-disable-next-line no-unused-vars
-const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
+const Pose = require('../utils/datatypes').Pose;
 
 class DistanceToGoalGrid {
   constructor(numberOfRows, numberOfCols, obstacleGrid, model) {
     this._numberOfRows = numberOfRows;
     this._numberOfCols = numberOfCols;
     this._obstacleGrid = obstacleGrid;
-    this._model = model;
+    this._ego = new Pose();
 
     this._grid = [];
     for (let row = 0; row < this._numberOfRows; row++) {
@@ -2833,6 +2907,10 @@ class DistanceToGoalGrid {
     return this._grid;
   }
 
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
   getX(x) {
     return parseInt(x);
   }
@@ -2844,8 +2922,7 @@ class DistanceToGoalGrid {
   getDistance(state) {
     let stateGlobal = Object.assign({}, state);
 
-    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
-        stateGlobal);
+    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
 
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);
@@ -2856,26 +2933,6 @@ class DistanceToGoalGrid {
   calculate(path) {
     for (let row = 0; row < this._numberOfRows; row++) {
       for (let col = 0; col < this._numberOfCols; col++) {
-        // let idxClosest = [];
-        // let minDistance = Number.MAX_VALUE;
-        // path.forEach((node, idx) => {
-        //   const astar = new AStar(false, undefined,
-        //       [row, col],
-        //       [node[0], node[1]],
-        //       this._obstacleGrid.grid);
-
-        //   while (!astar.isFinished()) {
-        //     astar.iterate();
-        //   }
-        //   console.log('Astar terminated.');
-
-        //   const path = astar.getPath();
-        //   if (path.length < minDistance) {
-        //     minDistance = path.length;
-        //     idxClosest = idx;
-        //   }
-        // });
-        // this._grid[row][col] = path.length - idxClosest - 1 + minDistance;
         let closest = Number.MAX_VALUE;
         let minDistance = Number.MAX_VALUE;
         path.forEach((node, idx) => {
@@ -2897,20 +2954,25 @@ class DistanceToGoalGrid {
 }
 module.exports.DistanceToGoalGrid = DistanceToGoalGrid;
 
-},{"../model/obstaclegrid":16,"../utils/utils":21}],13:[function(require,module,exports){
+},{"../utils/datatypes":21,"../utils/utils":22}],14:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
 const StateFilter = require('./statefilter').StateFilter;
 const CarShape = require('../utils/datatypes').CarShape;
 const State = require('../utils/datatypes').State;
 const Segment = require('../utils/datatypes').Segment;
 const Trajectory = require('../utils/datatypes').Trajectory;
+const Pose = require('../utils/datatypes').Pose;
 
 class Explorer {
-  constructor(view, parameters, goal, obstacles, distanceGrid,
-      distanceToGoalGrid) {
+  constructor(view,
+      parameters,
+      obstacleGrid,
+      distanceGrid,
+      distanceToGoalGrid,
+  ) {
     this._parameters = parameters;
-    this._goal = goal;
-    this._obstacles = obstacles;
+    this._goal = new Pose();
+    this._obstacleGrid = obstacleGrid;
     this._distanceGrid = distanceGrid;
     this._distanceToGoalGrid = distanceToGoalGrid;
     this._wheelBase = 2.64 / 2;
@@ -2940,9 +3002,13 @@ class Explorer {
     this._steeringAngles = value;
   }
 
-  reset(goal) {
-    this._segments = [];
+  updateGoal(goal) {
     this._goal = goal;
+  }
+
+  reset() {
+    this._segments = [];
+    this._initialState = new State();
   }
 
   setInitialState(initialState) {
@@ -3073,7 +3139,7 @@ class Explorer {
 
     const corners = new CarShape().getCorners(state);
     for (const corner of corners) {
-      colliding |= this._obstacles.isColliding(corner);
+      colliding |= this._obstacleGrid.isColliding(corner);
     }
     return colliding;
   }
@@ -3146,46 +3212,41 @@ class Explorer {
 }
 module.exports.Explorer = Explorer;
 
-},{"../utils/datatypes":20,"../utils/utils":21,"./statefilter":18}],14:[function(require,module,exports){
-const Planner = require('./planner').Planner;
-const Motion = require('./motion').Motion;
+},{"../utils/datatypes":21,"../utils/utils":22,"./statefilter":19}],15:[function(require,module,exports){
 const Pose = require('../utils/datatypes').Pose;
 const State = require('../utils/datatypes').State;
-const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
 const Utils = require('../Utils/Utils').Utils;
 const AStar = require('../model/astar').AStar;
-const DistanceGrid = require('../model/distancegrid').DistanceGrid;
-const DistanceToGoalGrid =
-    require('../model/distancetogoal').DistanceToGoalGrid;
-const Parameters = require('../utils/datatypes').Parameters;
 
 class Model {
-  constructor(view, width, height) {
+  constructor(view,
+      width,
+      height,
+      obstacleGrid,
+      distanceGrid,
+      distanceToGoalGrid,
+      parameters,
+      planner,
+      motion,
+  ) {
     this._view = view;
-    this._parameters = new Parameters();
+
     this._scale = 20;
     this._width = width;
     this._height = height;
+
     this._ego = Utils.convertToMetric(this._scale,
         new Pose(width/ 4, height/ 8, 110));
     this._goal = Utils.convertToMetric(this._scale,
         new Pose(width * .75, height/ 8));
     this._lastMovedEgo = Object.assign({}, this._ego);
-    this._obstacleGrid = new ObstacleGrid(width/ this._scale,
-        height/ this._scale, this);
-    this._distanceGrid = new DistanceGrid(parseInt(width/ this._scale),
-        parseInt(height/ this._scale), this);
-    this._distanceToGoalGrid = new DistanceToGoalGrid(
-        parseInt(width/ this._scale), parseInt(height/ this._scale),
-        this._obstacleGrid, this);
 
-    this._planner = new Planner(view,
-        this._parameters,
-        this._obstacleGrid,
-        this._distanceGrid,
-        this._distanceToGoalGrid,
-        this);
-    this._motion = new Motion(this._planner, view);
+    this._obstacleGrid = obstacleGrid;
+    this._distanceGrid = distanceGrid;
+    this._distanceToGoalGrid = distanceToGoalGrid;
+    this._parameters = parameters;
+    this._planner = planner;
+    this._motion = motion;
 
     this._layerTotalNumber = 2;
     this._baseFrequency_ms = 50;
@@ -3197,19 +3258,32 @@ class Model {
     this._astarIsFinished = false;
     this._astarIsStarted = false;
 
-    this._view.updateGoal(Utils.convertToPixels(this._scale, this._goal));
-    this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
+    this.updateEgo(this._ego);
+    this.updateGoal(this._goal);
   }
 
   setEgo(x, y, angle) {
     this._ego = Utils.convertToMetric(this._scale, new Pose(x, y, angle));
     Object.assign(this._lastMovedEgo, this._ego);
-    this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
+    this.updateEgo(this._ego);
+  }
+
+  updateEgo(ego) {
+    this._view.updateEgo(Utils.convertToPixels(this._scale, ego));
+    this._obstacleGrid.updateEgo(ego);
+    this._distanceGrid.updateEgo(ego);
+    this._distanceToGoalGrid.updateEgo(ego);
+    this._planner.updateEgo(ego);
   }
 
   setGoal(x, y, angle) {
     this._goal = Utils.convertToMetric(this._scale, new Pose(x, y, angle));
-    this._view.updateGoal(Utils.convertToPixels(this._scale, this._goal));
+    this.updateGoal(this._goal);
+  }
+
+  updateGoal(goal) {
+    this._view.updateGoal(Utils.convertToPixels(this._scale, goal));
+    this._planner.updateGoal(goal);
   }
 
   setObstacle(x, y) {
@@ -3270,7 +3344,7 @@ class Model {
       this._ego = this.getEgoFromState();
     }
 
-    this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
+    this.updateEgo(this._ego);
     this._view.updateTimerOnScreen(timer);
     this._view.render();
   }
@@ -3297,14 +3371,6 @@ class Model {
   deleteMap() {
     this._obstacleGrid.clear();
     this._view.clearAllObstacles();
-  }
-
-  getEgo() {
-    return this._ego;
-  }
-
-  getGoal() {
-    return Utils.transformObjectToUsk(this._ego, this._goal);
   }
 
   escapeKeyPressed() {
@@ -3358,7 +3424,7 @@ class Model {
 }
 module.exports.Model = Model;
 
-},{"../Utils/Utils":5,"../model/astar":10,"../model/distancegrid":11,"../model/distancetogoal":12,"../model/obstaclegrid":16,"../utils/datatypes":20,"./motion":15,"./planner":17}],15:[function(require,module,exports){
+},{"../Utils/Utils":5,"../model/astar":11,"../utils/datatypes":21}],16:[function(require,module,exports){
 const colorMap = require('../Utils/datatypes').colorMap;
 const State = require('../Utils/datatypes').State;
 
@@ -3427,15 +3493,20 @@ class Motion {
 }
 module.exports.Motion = Motion;
 
-},{"../Utils/datatypes":6}],16:[function(require,module,exports){
+},{"../Utils/datatypes":6}],17:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
 
 class ObstacleGrid {
-  constructor(width, height, model) {
+  constructor(width, height) {
     this._width = width;
     this._height = height;
-    this._model = model;
+    this._ego = new Pose();
     this._grid = this.createObstacleGrid();
+  }
+
+  updateEgo(ego) {
+    this._ego = ego;
   }
 
   createObstacleGrid() {
@@ -3478,8 +3549,7 @@ class ObstacleGrid {
   isColliding(state) {
     let stateGlobal = Object.assign({}, state);
 
-    stateGlobal = Utils.getStateInGlobalSystem(this._model.getEgo(),
-        stateGlobal);
+    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
 
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);
@@ -3501,22 +3571,20 @@ class ObstacleGrid {
 }
 module.exports.ObstacleGrid = ObstacleGrid;
 
-},{"../utils/utils":21}],17:[function(require,module,exports){
+},{"../utils/datatypes":21,"../utils/utils":22}],18:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
-const Explorer = require('./explorer').Explorer;
+const Utils = require('../Utils/Utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
 
 class Planner {
-  constructor(view, parameters, obstacleGrid, distanceGrid,
-      distanceToGoalGrid, model) {
+  constructor(view, parameters, explorer) {
     this._view = view;
     this._parameters = parameters;
-    this._explorer = null;
-    this._obstacleGrid = obstacleGrid;
-    this._distanceGrid = distanceGrid;
-    this._distanceToGoalGrid = distanceToGoalGrid;
-    this._model = model;
+    this._explorer = explorer;
+    this._lastTrajectory = [];
     this._trajectories = [];
-    this.reset();
+    this._ego = new Pose();
+    this._goalGlobal = new Pose();
   }
 
   get lastTrajectory() {
@@ -3547,15 +3615,16 @@ class Planner {
     this._explorer.steeringAngles = value;
   }
 
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
+  updateGoal(goal) {
+    this._goalGlobal = goal;
+    this._explorer.updateGoal(Utils.transformObjectToUsk(this._ego, goal));
+  }
+
   reset() {
-    this._explorer = new Explorer(
-        this._view,
-        this._parameters,
-        this._model.getGoal(),
-        this._obstacleGrid,
-        this._distanceGrid,
-        this._distanceToGoalGrid,
-    );
     this._lastTrajectory = [];
     this._trajectories = [];
   }
@@ -3566,7 +3635,7 @@ class Planner {
     }
 
     this._lastTrajectory = this._explorer.getBestTrajectory(this._trajectories);
-    this._lastTrajectory.origin = this._model.getEgo();
+    this._lastTrajectory.origin = this._ego;
     this._lastTrajectory.time = timer;
 
     this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
@@ -3580,7 +3649,9 @@ class Planner {
       return;
     }
 
-    this._explorer.reset(this._model.getGoal());
+    this._explorer.reset();
+    this._explorer.updateGoal(
+        Utils.transformObjectToUsk(this._ego, this._goalGlobal));
     this._explorer.setInitialState(initialState);
     for (let i=0; i<layerTotalNumber; ++i) {
       this._explorer.iterateLayer(i);
@@ -3611,7 +3682,7 @@ class Planner {
 }
 module.exports.Planner = Planner;
 
-},{"../utils/datatypes":20,"./explorer":13}],18:[function(require,module,exports){
+},{"../Utils/Utils":5,"../utils/datatypes":21}],19:[function(require,module,exports){
 class StateFilter {
   constructor(view, numberOfStatesPerLayer) {
     this._view = view;
@@ -3710,7 +3781,7 @@ class StateFilter {
 }
 module.exports.StateFilter = StateFilter;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function (Buffer){(function (){
 /* build: `node build.js modules=ALL exclude=gestures,accessors requirejs minifier=uglifyjs` */
 /*! Fabric.js Copyright 2008-2015, Printio (Juriy Zaytsev, Maxim Chernyak) */
@@ -34175,11 +34246,11 @@ fabric.util.object.extend(fabric.IText.prototype, /** @lends fabric.IText.protot
 
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"buffer":3,"jsdom":2,"jsdom/lib/jsdom/living/generated/utils":2,"jsdom/lib/jsdom/utils":2}],20:[function(require,module,exports){
+},{"buffer":3,"jsdom":2,"jsdom/lib/jsdom/living/generated/utils":2,"jsdom/lib/jsdom/utils":2}],21:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"./utils":21,"dup":6}],21:[function(require,module,exports){
+},{"./utils":22,"dup":6}],22:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],22:[function(require,module,exports){
+},{"dup":5}],23:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
 
 class Grid {
@@ -34279,7 +34350,7 @@ class Grid {
 };
 module.exports.Grid = Grid;
 
-},{"../utils/datatypes":20}],23:[function(require,module,exports){
+},{"../utils/datatypes":21}],24:[function(require,module,exports){
 let canObstacleBePlaced = true;
 let isPlaceObstacleEnabled = false;
 
@@ -34325,7 +34396,7 @@ const Listener = {
 };
 module.exports.Listener = Listener;
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 const fabric = require('fabric').fabric;
 const Utils = require('../Utils/Utils').Utils;
 const colorMap = require('../Utils/datatypes').colorMap;
@@ -34733,4 +34804,4 @@ class View {
 }
 module.exports.View = View;
 
-},{"../Utils/Utils":5,"../Utils/datatypes":6,"./grid":22,"./listener":23,"fabric":19}]},{},[9]);
+},{"../Utils/Utils":5,"../Utils/datatypes":6,"./grid":23,"./listener":24,"fabric":20}]},{},[10]);

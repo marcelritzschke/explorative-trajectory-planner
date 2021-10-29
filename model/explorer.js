@@ -4,13 +4,18 @@ const CarShape = require('../utils/datatypes').CarShape;
 const State = require('../utils/datatypes').State;
 const Segment = require('../utils/datatypes').Segment;
 const Trajectory = require('../utils/datatypes').Trajectory;
+const Pose = require('../utils/datatypes').Pose;
 
 class Explorer {
-  constructor(view, parameters, goal, obstacles, distanceGrid,
-      distanceToGoalGrid) {
+  constructor(view,
+      parameters,
+      obstacleGrid,
+      distanceGrid,
+      distanceToGoalGrid,
+  ) {
     this._parameters = parameters;
-    this._goal = goal;
-    this._obstacles = obstacles;
+    this._goal = new Pose();
+    this._obstacleGrid = obstacleGrid;
     this._distanceGrid = distanceGrid;
     this._distanceToGoalGrid = distanceToGoalGrid;
     this._wheelBase = 2.64 / 2;
@@ -40,9 +45,13 @@ class Explorer {
     this._steeringAngles = value;
   }
 
-  reset(goal) {
-    this._segments = [];
+  updateGoal(goal) {
     this._goal = goal;
+  }
+
+  reset() {
+    this._segments = [];
+    this._initialState = new State();
   }
 
   setInitialState(initialState) {
@@ -173,7 +182,7 @@ class Explorer {
 
     const corners = new CarShape().getCorners(state);
     for (const corner of corners) {
-      colliding |= this._obstacles.isColliding(corner);
+      colliding |= this._obstacleGrid.isColliding(corner);
     }
     return colliding;
   }
