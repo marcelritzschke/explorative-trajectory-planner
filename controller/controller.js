@@ -1,9 +1,12 @@
 class Controller {
   constructor(model) {
     this._model = model;
-    this._intervalHandler = null;
+    this._intervalHandlerPath = null;
+    this._intervalHandlerTraj = null;
     this._timer = 0;
-    this._baseFrequency_ms = 50;
+    this._baseFrequencyPath_ms = 10;
+    this._baseFrequencyTraj_ms = 50;
+    this._isActive = false;
 
 
     document.onkeydown = function(e) {
@@ -16,38 +19,50 @@ class Controller {
   }
 
   makePath() {
-    this._intervalHandler = window.setInterval(() => this.executePathPlanner(),
-        this._baseFrequency_ms);
+    if (!this._isActive) {
+      this._intervalHandlerPath = window.setInterval(() =>
+        this.executePathPlanner(), this._baseFrequencyPath_ms);
+      this.setActive();
+    }
   }
 
   executePathPlanner() {
     if (this._model.isPathPlannerFinished()) {
-      window.clearInterval(this._intervalHandler);
+      window.clearInterval(this._intervalHandlerPath);
+      this.setInactive();
     } else {
       this._model.runPathPlanner();
     }
   }
 
   step() {
-    this.execute();
+    !this._isActive && this.execute();
   }
 
   play() {
-    this._intervalHandler = window.setInterval(() => this.execute(),
-        this._baseFrequency_ms);
+    if (!this._isActive) {
+      this._intervalHandlerTraj = window.setInterval(() => this.execute(),
+          this._baseFrequencyTraj_ms);
+      this.setActive();
+    }
   }
 
   pause() {
-    window.clearInterval(this._intervalHandler);
+    if (this._isActive) {
+      window.clearInterval(this._intervalHandlerTraj);
+      this.setInactive();
+    }
   }
 
   execute() {
     this._model.execute(this._timer);
-    this._timer += this._baseFrequency_ms/ 1000;
+    this._timer += this._baseFrequencyTraj_ms/ 1000;
   }
 
   reset() {
-    window.clearInterval(this._intervalHandler);
+    window.clearInterval(this._intervalHandlerTraj);
+    window.clearInterval(this._intervalHandlerPath);
+    this.setInactive();
     this._timer = 0;
     this._model.reset();
     this.updateLayerNumber();
@@ -56,6 +71,14 @@ class Controller {
     this.updateDrawExploration();
     this.updateVelocities();
     this.updateSteeringAngles();
+  }
+
+  setActive() {
+    this._isActive = true;
+  }
+
+  setInactive() {
+    this._isActive = false;
   }
 
   updateLayerNumber() {
