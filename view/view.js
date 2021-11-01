@@ -1,9 +1,9 @@
 const fabric = require('fabric').fabric;
-const Utils = require('../Utils/Utils').Utils;
-const colorMap = require('../Utils/datatypes').colorMap;
-const Pose = require('../Utils/datatypes').Pose;
-const CarShape = require('../Utils/datatypes').CarShape;
-const Shape = require('../Utils/datatypes').Shape;
+const Utils = require('../utils/utils').Utils;
+const colorMap = require('../utils/datatypes').colorMap;
+const Pose = require('../utils/datatypes').Pose;
+const CarShape = require('../utils/datatypes').CarShape;
+const Shape = require('../utils/datatypes').Shape;
 const Grid = require('./grid').Grid;
 const Listener = require('./listener').Listener;
 

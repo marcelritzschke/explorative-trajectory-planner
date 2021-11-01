@@ -1,5 +1,5 @@
 const colorMap = require('../utils/datatypes').colorMap;
-const Utils = require('../Utils/Utils').Utils;
+const Utils = require('../utils/utils').Utils;
 const Pose = require('../utils/datatypes').Pose;
 
 class Planner {

@@ -1,6 +1,6 @@
 const Pose = require('../utils/datatypes').Pose;
 const State = require('../utils/datatypes').State;
-const Utils = require('../Utils/Utils').Utils;
+const Utils = require('../utils/utils').Utils;
 const AStar = require('../model/astar').AStar;
 
 class Model {

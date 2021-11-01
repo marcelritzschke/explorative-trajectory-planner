@@ -1,5 +1,5 @@
-const colorMap = require('../Utils/datatypes').colorMap;
-const State = require('../Utils/datatypes').State;
+const colorMap = require('../utils/datatypes').colorMap;
+const State = require('../utils/datatypes').State;
 
 class Motion {
   constructor(planner, view) {
