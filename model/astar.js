@@ -1,3 +1,5 @@
+const MinHeap = require('../utils/minheap').MinHeap;
+
 class Node {
   constructor(row, col, value) {
     this._id = String(row) + '-' + String(col);
@@ -5,6 +7,7 @@ class Node {
     this._col = col;
     this._value = value;
     this._distanceFromStart = Number.MAX_VALUE; // g
+    this._heuristic = Number.MAX_VALUE; // h
     this._distanceToEnd = Number.MAX_VALUE; // f=g+h
     this._cameFrom = null;
   }
@@ -17,6 +20,9 @@ class Node {
   }
   set cameFrom(from) {
     this._cameFrom = from;
+  }
+  set heuristic(value) {
+    this._heuristic = value;
   }
 
   get id() {
@@ -40,15 +46,18 @@ class Node {
   get cameFrom() {
     return this._cameFrom;
   }
+  get heuristic() {
+    return this._heuristic;
+  }
 }
 
 class AStar {
-  constructor(draw, view, start, end, grid) { // grid = arr[arr[bool]]
+  constructor(start, end, grid, draw = false, view = undefined) {
     this._draw = draw;
     this._view = view;
     this._start = start;
     this._end = end;
-    this._grid = grid;
+    this._grid = grid; // arr[arr[bool]]
     this._startRow = start[0];
     this._startCol = start[1];
     this._endRow = end[0];
@@ -67,19 +76,21 @@ class AStar {
     this._endNode = this._nodes[this._endRow][this._endCol];
 
     this._startNode.distanceFromStart = 0;
-    this._startNode.distanceToEnd = this.calculateDistance(this._startRow,
+    this._startNode.heuristic = this.calculateDistance(this._startRow,
         this._startCol);
+    this._startNode.distanceToEnd = this._startNode.heuristic;
 
-    this._openSet = [this._startNode]; // make as min heap
+    this._openSet = new MinHeap();
+    this._openSet.push(this._startNode, this._startNode.id);
     this._closedSet = [];
 
     this._endReached = false;
   }
 
   iterate() {
-    if (this._openSet.length > 0 && !this._endReached) {
-      const [node, idx] = this.getMinNode(this._openSet);
-      this._openSet.splice(idx, 1);
+    if (!this._openSet.isEmpty() && !this._endReached) {
+      const node = this.getMinNode();
+      this._openSet.pop();
       this._closedSet.push(node);
       this._draw && this._view.drawNodeAStarVisited(node.row, node.col);
       this._drawnNodes.push(node);
@@ -88,31 +99,49 @@ class AStar {
       neighbors.filter((i) => !this.isInArray(i, this._closedSet))
           .filter((j) => !j.value)
           .forEach((neighbor) => {
-            neighbor.distanceFromStart = node.distanceFromStart + 1;
-            neighbor.distanceToEnd = neighbor.distanceFromStart +
-                this.calculateDistance(neighbor.row, neighbor.col);
-            neighbor.cameFrom = node;
+            // new tentative distance
+            const newDist = node.distanceFromStart + 1 + this.calculateDistance(
+                neighbor.row, neighbor.col,
+            );
 
-            if (neighbor.id === this._endNode.id) {
-              this._endReached = true;
+            // Check if node was already visited before:
+            // If distanceToEnd is not Number.MAX_VALUE anymore, it must be in
+            // open set or closed set. Since neighbors have been filtered by
+            // closed set, it will be in open set. Remember, in case node
+            // will be updated in the following section.
+            let isInOpenSet = false;
+            if (neighbor.distanceToEnd < Number.MAX_VALUE) {
+              isInOpenSet = true;
             }
 
-            const foundInOpenSet = this._openSet.find((el) =>
-              el.id === neighbor.id);
-            if (foundInOpenSet === undefined) {
-              this._openSet.push(neighbor);
+            // Update node, if the distance to end is shorter from node.
+            if (newDist < neighbor.distanceToEnd) {
+              neighbor.distanceFromStart = node.distanceFromStart + 1;
+              neighbor.heuristic = this.calculateDistance(neighbor.row,
+                  neighbor.col);
+              neighbor.distanceToEnd = neighbor.distanceFromStart +
+                  neighbor.heuristic;
+              neighbor.cameFrom = node;
+            }
+
+            // Push neighbor to open set, if not already there.
+            if (!isInOpenSet) {
+              this._openSet.push(neighbor.distanceToEnd, neighbor.id);
               this._draw &&
-                  this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
+                this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
               this._drawnNodes.push(neighbor);
-            } else if (foundInOpenSet.distanceToEnd > neighbor.distanceToEnd) {
-              foundInOpenSet = neighbor;
+            }
+
+            // TODO: early return if end is reached.
+            if (neighbor.id === this._endNode.id) {
+              this._endReached = true;
             }
           });
     }
   }
 
   isFinished() {
-    return this._endReached;
+    return this._endReached || this._openSet.isEmpty();
   }
 
   getPath() {
@@ -141,16 +170,12 @@ class AStar {
     return result;
   }
 
-  getMinNode(nodes) {
-    let min = nodes[0];
-    let idx = 0;
-    nodes.forEach((node, id) => {
-      if (node.distanceToEnd < min.distanceToEnd) {
-        min = node;
-        idx = id;
-      }
-    });
-    return [min, idx];
+  getMinNode() {
+    const id = this._openSet.peekIdentifier();
+    const row = id.split('-')[0];
+    const col = id.split('-')[1];
+
+    return this._nodes[row][col];
   }
 
   getNeighbors(node, nodes) {
