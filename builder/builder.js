@@ -59,6 +59,7 @@ class Builder {
     this._model = new Model(this._view,
         this._width,
         this._height,
+        this._scale,
         this._obstacleGrid,
         this._distanceGrid,
         this._distanceToGoalGrid,

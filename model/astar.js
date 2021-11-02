@@ -126,7 +126,8 @@ class AStar {
 
             // Push neighbor to open set, if not already there.
             if (!isInOpenSet) {
-              this._openSet.push(neighbor.distanceToEnd, neighbor.id);
+              this._openSet.push(neighbor.distanceToEnd,
+                  neighbor.id, neighbor.heuristic);
               this._draw &&
                 this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
               this._drawnNodes.push(neighbor);

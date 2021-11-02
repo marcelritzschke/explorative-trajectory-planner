@@ -107,3 +107,21 @@ test('heap_with_identifier_set', () => {
   expect(minHeap.pop()).toEqual(2222);
   expect(minHeap.peekIdentifier()).toBeUndefined();
 });
+
+test('heap_with_secondary', () => {
+  const minHeap = new MinHeap();
+
+  minHeap.push(2, '5');
+  minHeap.push(222, '4', 1);
+  minHeap.push(222, 7);
+  minHeap.push(2222, 6);
+  expect(minHeap.peekIdentifier()).toEqual('5');
+  expect(minHeap.pop()).toEqual(2);
+  expect(minHeap.peekIdentifier()).toEqual(7);
+  expect(minHeap.pop()).toEqual(222);
+  expect(minHeap.peekIdentifier()).toEqual('4');
+  expect(minHeap.pop()).toEqual(222);
+  expect(minHeap.peekIdentifier()).toEqual(6);
+  expect(minHeap.pop()).toEqual(2222);
+  expect(minHeap.peekIdentifier()).toBeUndefined();
+});

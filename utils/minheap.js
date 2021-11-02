@@ -63,6 +63,17 @@ class MinHeap {
     if (lvalue < rvalue) {
       return true;
     }
+
+    if (lvalue > rvalue) {
+      return false;
+    }
+
+    const lsecondary = this.getSecondary(lidx);
+    const rsecondary = this.getSecondary(ridx);
+    if (lsecondary < rsecondary) {
+      return true;
+    }
+
     return false;
   }
 
@@ -137,6 +148,13 @@ class MinHeap {
   get(idx) {
     if (idx < this._heap.length) {
       return this._heap[idx][0];
+    }
+    return Number.MAX_VALUE;
+  }
+
+  getSecondary(idx) {
+    if (idx < this._heap.length) {
+      return this._heap[idx][2];
     }
     return Number.MAX_VALUE;
   }

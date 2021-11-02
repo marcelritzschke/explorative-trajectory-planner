@@ -7,6 +7,7 @@ class Model {
   constructor(view,
       width,
       height,
+      scale,
       obstacleGrid,
       distanceGrid,
       distanceToGoalGrid,
@@ -16,7 +17,7 @@ class Model {
   ) {
     this._view = view;
 
-    this._scale = 20;
+    this._scale = scale;
     this._width = width;
     this._height = height;
 
@@ -100,10 +101,11 @@ class Model {
 
   runPathPlanner() {
     if (!this._astarIsStarted) {
-      this._astar = new AStar(true, this._view,
+      this._astar = new AStar(
           [parseInt(this._ego.x), parseInt(this._ego.y)],
           [parseInt(this._goal.x), parseInt(this._goal.y)],
-          this._obstacleGrid.grid);
+          this._obstacleGrid.grid,
+          true, this._view);
       this._astarIsStarted = true;
     }
 

@@ -60,6 +60,7 @@ class Builder {
     this._model = new Model(this._view,
         this._width,
         this._height,
+        this._scale,
         this._obstacleGrid,
         this._distanceGrid,
         this._distanceToGoalGrid,
@@ -86,7 +87,7 @@ class Builder {
 }
 module.exports.Builder = Builder;
 
-},{"../controller/controller":2,"../model/distancegrid":5,"../model/distancetogoal":6,"../model/explorer":7,"../model/model":8,"../model/motion":9,"../model/obstaclegrid":10,"../model/planner":11,"../utils/datatypes":14,"../view/view":18}],2:[function(require,module,exports){
+},{"../controller/controller":2,"../model/distancegrid":5,"../model/distancetogoal":6,"../model/explorer":7,"../model/model":8,"../model/motion":9,"../model/obstaclegrid":10,"../model/planner":11,"../utils/datatypes":14,"../view/view":19}],2:[function(require,module,exports){
 class Controller {
   constructor(model) {
     this._model = model;
@@ -289,6 +290,8 @@ window.getController = function() {
 };
 
 },{"./builder/builder":1}],4:[function(require,module,exports){
+const MinHeap = require('../utils/minheap').MinHeap;
+
 class Node {
   constructor(row, col, value) {
     this._id = String(row) + '-' + String(col);
@@ -296,6 +299,7 @@ class Node {
     this._col = col;
     this._value = value;
     this._distanceFromStart = Number.MAX_VALUE; // g
+    this._heuristic = Number.MAX_VALUE; // h
     this._distanceToEnd = Number.MAX_VALUE; // f=g+h
     this._cameFrom = null;
   }
@@ -308,6 +312,9 @@ class Node {
   }
   set cameFrom(from) {
     this._cameFrom = from;
+  }
+  set heuristic(value) {
+    this._heuristic = value;
   }
 
   get id() {
@@ -331,15 +338,18 @@ class Node {
   get cameFrom() {
     return this._cameFrom;
   }
+  get heuristic() {
+    return this._heuristic;
+  }
 }
 
 class AStar {
-  constructor(draw, view, start, end, grid) { // grid = arr[arr[bool]]
+  constructor(start, end, grid, draw = false, view = undefined) {
     this._draw = draw;
     this._view = view;
     this._start = start;
     this._end = end;
-    this._grid = grid;
+    this._grid = grid; // arr[arr[bool]]
     this._startRow = start[0];
     this._startCol = start[1];
     this._endRow = end[0];
@@ -358,19 +368,21 @@ class AStar {
     this._endNode = this._nodes[this._endRow][this._endCol];
 
     this._startNode.distanceFromStart = 0;
-    this._startNode.distanceToEnd = this.calculateDistance(this._startRow,
+    this._startNode.heuristic = this.calculateDistance(this._startRow,
         this._startCol);
+    this._startNode.distanceToEnd = this._startNode.heuristic;
 
-    this._openSet = [this._startNode]; // make as min heap
+    this._openSet = new MinHeap();
+    this._openSet.push(this._startNode, this._startNode.id);
     this._closedSet = [];
 
     this._endReached = false;
   }
 
   iterate() {
-    if (this._openSet.length > 0 && !this._endReached) {
-      const [node, idx] = this.getMinNode(this._openSet);
-      this._openSet.splice(idx, 1);
+    if (!this._openSet.isEmpty() && !this._endReached) {
+      const node = this.getMinNode();
+      this._openSet.pop();
       this._closedSet.push(node);
       this._draw && this._view.drawNodeAStarVisited(node.row, node.col);
       this._drawnNodes.push(node);
@@ -379,31 +391,50 @@ class AStar {
       neighbors.filter((i) => !this.isInArray(i, this._closedSet))
           .filter((j) => !j.value)
           .forEach((neighbor) => {
-            neighbor.distanceFromStart = node.distanceFromStart + 1;
-            neighbor.distanceToEnd = neighbor.distanceFromStart +
-                this.calculateDistance(neighbor.row, neighbor.col);
-            neighbor.cameFrom = node;
+            // new tentative distance
+            const newDist = node.distanceFromStart + 1 + this.calculateDistance(
+                neighbor.row, neighbor.col,
+            );
 
-            if (neighbor.id === this._endNode.id) {
-              this._endReached = true;
+            // Check if node was already visited before:
+            // If distanceToEnd is not Number.MAX_VALUE anymore, it must be in
+            // open set or closed set. Since neighbors have been filtered by
+            // closed set, it will be in open set. Remember, in case node
+            // will be updated in the following section.
+            let isInOpenSet = false;
+            if (neighbor.distanceToEnd < Number.MAX_VALUE) {
+              isInOpenSet = true;
             }
 
-            const foundInOpenSet = this._openSet.find((el) =>
-              el.id === neighbor.id);
-            if (foundInOpenSet === undefined) {
-              this._openSet.push(neighbor);
+            // Update node, if the distance to end is shorter from node.
+            if (newDist < neighbor.distanceToEnd) {
+              neighbor.distanceFromStart = node.distanceFromStart + 1;
+              neighbor.heuristic = this.calculateDistance(neighbor.row,
+                  neighbor.col);
+              neighbor.distanceToEnd = neighbor.distanceFromStart +
+                  neighbor.heuristic;
+              neighbor.cameFrom = node;
+            }
+
+            // Push neighbor to open set, if not already there.
+            if (!isInOpenSet) {
+              this._openSet.push(neighbor.distanceToEnd,
+                  neighbor.id, neighbor.heuristic);
               this._draw &&
-                  this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
+                this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
               this._drawnNodes.push(neighbor);
-            } else if (foundInOpenSet.distanceToEnd > neighbor.distanceToEnd) {
-              foundInOpenSet = neighbor;
+            }
+
+            // TODO: early return if end is reached.
+            if (neighbor.id === this._endNode.id) {
+              this._endReached = true;
             }
           });
     }
   }
 
   isFinished() {
-    return this._endReached;
+    return this._endReached || this._openSet.isEmpty();
   }
 
   getPath() {
@@ -432,16 +463,12 @@ class AStar {
     return result;
   }
 
-  getMinNode(nodes) {
-    let min = nodes[0];
-    let idx = 0;
-    nodes.forEach((node, id) => {
-      if (node.distanceToEnd < min.distanceToEnd) {
-        min = node;
-        idx = id;
-      }
-    });
-    return [min, idx];
+  getMinNode() {
+    const id = this._openSet.peekIdentifier();
+    const row = id.split('-')[0];
+    const col = id.split('-')[1];
+
+    return this._nodes[row][col];
   }
 
   getNeighbors(node, nodes) {
@@ -481,7 +508,7 @@ class AStar {
 }
 module.exports.AStar = AStar;
 
-},{}],5:[function(require,module,exports){
+},{"../utils/minheap":15}],5:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
 const Pose = require('../utils/datatypes').Pose;
 
@@ -547,7 +574,7 @@ class DistanceGrid {
 }
 module.exports.DistanceGrid = DistanceGrid;
 
-},{"../utils/datatypes":14,"../utils/utils":15}],6:[function(require,module,exports){
+},{"../utils/datatypes":14,"../utils/utils":16}],6:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
 const Pose = require('../utils/datatypes').Pose;
 
@@ -618,7 +645,7 @@ class DistanceToGoalGrid {
 }
 module.exports.DistanceToGoalGrid = DistanceToGoalGrid;
 
-},{"../utils/datatypes":14,"../utils/utils":15}],7:[function(require,module,exports){
+},{"../utils/datatypes":14,"../utils/utils":16}],7:[function(require,module,exports){
 const Utils = require('../utils/utils').Utils;
 const StateFilter = require('./statefilter').StateFilter;
 const CarShape = require('../utils/datatypes').CarShape;
@@ -876,7 +903,7 @@ class Explorer {
 }
 module.exports.Explorer = Explorer;
 
-},{"../utils/datatypes":14,"../utils/utils":15,"./statefilter":12}],8:[function(require,module,exports){
+},{"../utils/datatypes":14,"../utils/utils":16,"./statefilter":12}],8:[function(require,module,exports){
 const Pose = require('../utils/datatypes').Pose;
 const State = require('../utils/datatypes').State;
 const Utils = require('../utils/utils').Utils;
@@ -886,6 +913,7 @@ class Model {
   constructor(view,
       width,
       height,
+      scale,
       obstacleGrid,
       distanceGrid,
       distanceToGoalGrid,
@@ -895,7 +923,7 @@ class Model {
   ) {
     this._view = view;
 
-    this._scale = 20;
+    this._scale = scale;
     this._width = width;
     this._height = height;
 
@@ -979,10 +1007,11 @@ class Model {
 
   runPathPlanner() {
     if (!this._astarIsStarted) {
-      this._astar = new AStar(true, this._view,
+      this._astar = new AStar(
           [parseInt(this._ego.x), parseInt(this._ego.y)],
           [parseInt(this._goal.x), parseInt(this._goal.y)],
-          this._obstacleGrid.grid);
+          this._obstacleGrid.grid,
+          true, this._view);
       this._astarIsStarted = true;
     }
 
@@ -1088,7 +1117,7 @@ class Model {
 }
 module.exports.Model = Model;
 
-},{"../model/astar":4,"../utils/datatypes":14,"../utils/utils":15}],9:[function(require,module,exports){
+},{"../model/astar":4,"../utils/datatypes":14,"../utils/utils":16}],9:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
 const State = require('../utils/datatypes').State;
 
@@ -1235,7 +1264,7 @@ class ObstacleGrid {
 }
 module.exports.ObstacleGrid = ObstacleGrid;
 
-},{"../utils/datatypes":14,"../utils/utils":15}],11:[function(require,module,exports){
+},{"../utils/datatypes":14,"../utils/utils":16}],11:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
 const Utils = require('../utils/utils').Utils;
 const Pose = require('../utils/datatypes').Pose;
@@ -1346,7 +1375,7 @@ class Planner {
 }
 module.exports.Planner = Planner;
 
-},{"../utils/datatypes":14,"../utils/utils":15}],12:[function(require,module,exports){
+},{"../utils/datatypes":14,"../utils/utils":16}],12:[function(require,module,exports){
 class StateFilter {
   constructor(view, numberOfStatesPerLayer) {
     this._view = view;
@@ -32234,7 +32263,7 @@ fabric.util.object.extend(fabric.IText.prototype, /** @lends fabric.IText.protot
 
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"buffer":21,"jsdom":20,"jsdom/lib/jsdom/living/generated/utils":20,"jsdom/lib/jsdom/utils":20}],14:[function(require,module,exports){
+},{"buffer":22,"jsdom":21,"jsdom/lib/jsdom/living/generated/utils":21,"jsdom/lib/jsdom/utils":21}],14:[function(require,module,exports){
 const Utils = require('./utils').Utils;
 
 const colorMap = new Map([
@@ -32464,7 +32493,171 @@ class Parameters {
 }
 module.exports.Parameters = Parameters;
 
-},{"./utils":15}],15:[function(require,module,exports){
+},{"./utils":16}],15:[function(require,module,exports){
+class MinHeap {
+  constructor(elements = []) {
+    this._heap = [];
+    if (elements instanceof Array) {
+      elements.forEach((el) => {
+        this.push(el);
+      });
+    } else {
+      // TODO: Throw error
+    }
+  }
+
+  push(value, identifier = 0, secondary = 0) {
+    this._heap.push([value, identifier, secondary]);
+    this.siftUp(this._heap.length-1);
+  }
+
+  peek() {
+    if (!this.isEmpty()) {
+      return this._heap[0][0];
+    }
+    return undefined;
+  }
+
+  peekIdentifier() {
+    if (!this.isEmpty()) {
+      return this._heap[0][1];
+    }
+    return undefined;
+  }
+
+  pop() {
+    const ret = this.peek();
+    if (ret === undefined) {
+      return undefined;
+    }
+    this.swap(0, this._heap.length-1);
+    this._heap.pop();
+    this.siftDown(0);
+    return ret;
+  }
+
+  isEmpty() {
+    return this._heap.length === 0;
+  }
+
+  siftUp(idx) {
+    while (idx > 0) {
+      // const parent = this.getParent(idx);
+      // const current = this.get(idx);
+      if (this.isSmaller(idx, this.getParentIdx(idx))) {
+        this.swap(idx, this.getParentIdx(idx));
+        idx = this.getParentIdx(idx);
+      } else {
+        break;
+      }
+    }
+  }
+
+  isSmaller(lidx, ridx) {
+    const lvalue = this.get(lidx);
+    const rvalue = this.get(ridx);
+    if (lvalue < rvalue) {
+      return true;
+    }
+
+    if (lvalue > rvalue) {
+      return false;
+    }
+
+    const lsecondary = this.getSecondary(lidx);
+    const rsecondary = this.getSecondary(ridx);
+    if (lsecondary < rsecondary) {
+      return true;
+    }
+
+    return false;
+  }
+
+  min(lidx, midx, ridx) {
+    if (this.isSmaller(lidx, midx) && this.isSmaller(lidx, ridx)) {
+      return lidx;
+    } if (this.isSmaller(ridx, midx)) {
+      return ridx;
+    } else {
+      return midx;
+    }
+  }
+
+  siftDown(idx) {
+    while (idx < this._heap.length) {
+      const min = this.min(idx,
+          this.getChildOneIdx(idx),
+          this.getChildTwoIdx(idx));
+
+      if (this.getChildOneIdx(idx) === min) {
+        this.swap(idx, this.getChildOneIdx(idx));
+        idx = this.getChildOneIdx(idx);
+      } else if (this.getChildTwoIdx(idx) === min) {
+        this.swap(idx, this.getChildTwoIdx(idx));
+        idx = this.getChildTwoIdx(idx);
+      } else {
+        break;
+      }
+    }
+  }
+
+  swap(lidx, ridx) {
+    const tmp = this._heap[lidx];
+    this._heap[lidx] = this._heap[ridx];
+    this._heap[ridx] = tmp;
+  }
+
+  getParent(idx) {
+    return this.get(this.getParentIdx(idx));
+  }
+
+  getParentIdx(idx) {
+    return parseInt((idx - 1)/ 2);
+  }
+
+  getChildOne(idx) {
+    const childIdx = this.getChildOneIdx(idx);
+    if (childIdx < this._heap.length) {
+      return this.get(childIdx);
+    } else {
+      return Number.MAX_VALUE;
+    }
+  }
+
+  getChildOneIdx(idx) {
+    return 2*idx + 1;
+  }
+
+  getChildTwo(idx) {
+    const childIdx = this.getChildTwoIdx(idx);
+    if (childIdx < this._heap.length) {
+      return this.get(childIdx);
+    } else {
+      return Number.MAX_VALUE;
+    }
+  }
+
+  getChildTwoIdx(idx) {
+    return 2*idx + 2;
+  }
+
+  get(idx) {
+    if (idx < this._heap.length) {
+      return this._heap[idx][0];
+    }
+    return Number.MAX_VALUE;
+  }
+
+  getSecondary(idx) {
+    if (idx < this._heap.length) {
+      return this._heap[idx][2];
+    }
+    return Number.MAX_VALUE;
+  }
+}
+module.exports.MinHeap = MinHeap;
+
+},{}],16:[function(require,module,exports){
 const Utils = {
   transformObjectToUsk(ego, object) {
     const buf = Object.assign({}, object);
@@ -32569,7 +32762,7 @@ const Utils = {
 };
 module.exports.Utils = Utils;
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 const colorMap = require('../utils/datatypes').colorMap;
 
 class Grid {
@@ -32669,7 +32862,7 @@ class Grid {
 };
 module.exports.Grid = Grid;
 
-},{"../utils/datatypes":14}],17:[function(require,module,exports){
+},{"../utils/datatypes":14}],18:[function(require,module,exports){
 let canObstacleBePlaced = true;
 let isPlaceObstacleEnabled = false;
 
@@ -32715,7 +32908,7 @@ const Listener = {
 };
 module.exports.Listener = Listener;
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 const fabric = require('fabric').fabric;
 const Utils = require('../utils/utils').Utils;
 const colorMap = require('../utils/datatypes').colorMap;
@@ -33123,7 +33316,7 @@ class View {
 }
 module.exports.View = View;
 
-},{"../utils/datatypes":14,"../utils/utils":15,"./grid":16,"./listener":17,"fabric":13}],19:[function(require,module,exports){
+},{"../utils/datatypes":14,"../utils/utils":16,"./grid":17,"./listener":18,"fabric":13}],20:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -33275,9 +33468,9 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],20:[function(require,module,exports){
-
 },{}],21:[function(require,module,exports){
+
+},{}],22:[function(require,module,exports){
 (function (Buffer){(function (){
 /*!
  * The buffer module from node.js, for the browser.
@@ -35058,7 +35251,7 @@ function numberIsNaN (obj) {
 }
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"base64-js":19,"buffer":21,"ieee754":22}],22:[function(require,module,exports){
+},{"base64-js":20,"buffer":22,"ieee754":23}],23:[function(require,module,exports){
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
