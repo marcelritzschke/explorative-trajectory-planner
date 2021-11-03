@@ -124,13 +124,16 @@ class AStar {
               neighbor.cameFrom = node;
             }
 
-            // Push neighbor to open set, if not already there.
+            // Push neighbor to open set or update heap.
             if (!isInOpenSet) {
               this._openSet.push(neighbor.distanceToEnd,
                   neighbor.id, neighbor.heuristic);
               this._draw &&
                 this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
               this._drawnNodes.push(neighbor);
+            } else {
+              this._openSet.update(neighbor.distanceToEnd,
+                  neighbor.id, neighbor.heuristic);
             }
 
             // TODO: early return if end is reached.

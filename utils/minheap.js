@@ -40,14 +40,31 @@ class MinHeap {
     return ret;
   }
 
+  update(value, identifier, secondary = null) {
+    for (let i = 0; i < this._heap.length; i++) {
+      const el = this._heap[i];
+      if (el[1] === identifier) {
+        // update values
+        el[0] = value;
+        if (secondary != null) {
+          el[2] = secondary;
+        }
+        // now sift up first (we expect update to better value more likely)
+        this.siftUp(i);
+        // also call sift down in case update to worse value
+        this.siftDown(i);
+
+        break;
+      }
+    }
+  }
+
   isEmpty() {
     return this._heap.length === 0;
   }
 
   siftUp(idx) {
     while (idx > 0) {
-      // const parent = this.getParent(idx);
-      // const current = this.get(idx);
       if (this.isSmaller(idx, this.getParentIdx(idx))) {
         this.swap(idx, this.getParentIdx(idx));
         idx = this.getParentIdx(idx);

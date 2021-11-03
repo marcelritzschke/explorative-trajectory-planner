@@ -125,3 +125,23 @@ test('heap_with_secondary', () => {
   expect(minHeap.pop()).toEqual(2222);
   expect(minHeap.peekIdentifier()).toBeUndefined();
 });
+
+test('heap_values_can_be_updated', () => {
+  const minHeap = new MinHeap();
+
+  minHeap.push(2, '0');
+  minHeap.push(222, '1', 1);
+  minHeap.push(222, '2');
+  minHeap.push(2222, '3');
+  expect(minHeap.peekIdentifier()).toEqual('0');
+  expect(minHeap.pop()).toEqual(2);
+  expect(minHeap.peekIdentifier()).toEqual('2');
+
+  minHeap.update(-100, '3');
+  expect(minHeap.peekIdentifier()).toEqual('3');
+  expect(minHeap.pop()).toEqual(-100);
+
+  expect(minHeap.peekIdentifier()).toEqual('2');
+  minHeap.update(222, '2', 3);
+  expect(minHeap.peekIdentifier()).toEqual('1');
+});
