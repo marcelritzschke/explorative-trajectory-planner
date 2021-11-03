@@ -8,16 +8,21 @@ class DistanceGrid {
     this._ego = new Pose();
 
     this._grid = [];
+    this.reset();
+  }
+
+  get grid() {
+    return this._grid;
+  }
+
+  reset() {
+    this._grid = [];
     for (let row = 0; row < this._numberOfRows; row++) {
       this._grid.push([]);
       for (let col = 0; col < this._numberOfCols; col++) {
         this._grid[row].push(0);
       }
     }
-  }
-
-  get grid() {
-    return this._grid;
   }
 
   updateEgo(ego) {

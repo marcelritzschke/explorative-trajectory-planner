@@ -41,7 +41,6 @@ class Model {
     this._activeState = new State();
 
     this._astar = null;
-    this._astarIsFinished = false;
     this._astarIsStarted = false;
 
     this.updateEgo(this._ego);
@@ -88,7 +87,12 @@ class Model {
     Object.assign(this._ego, this._lastMovedEgo);
     this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
 
+    this._astar = null;
+    this._astarIsStarted = false;
     this._planner.reset();
+    this._distanceGrid.reset();
+    this._distanceToGoalGrid.reset();
+    this._view.deletePath();
     this._view.reset();
   }
 
@@ -156,7 +160,7 @@ class Model {
   }
 
   deleteMap() {
-    this._obstacleGrid.clear();
+    this._obstacleGrid.reset();
     this._view.clearAllObstacles();
   }
 

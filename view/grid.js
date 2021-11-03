@@ -32,11 +32,13 @@ class Grid {
     this.paintSquare(row, col, colorMap.get('obstacle'));
   }
 
-  clear() {
+  deleteSquares(color) {
     for (let col=0; col<this._Y; ++col) {
       for (let row=0; row<this._X; ++row) {
         const idx = this._X * col + row;
-        this._object._objects[idx].set({fill: colorMap.get('background')});
+        if (this._object._objects[idx].fill === color) {
+          this._object._objects[idx].set({fill: colorMap.get('background')});
+        }
       }
     }
   }

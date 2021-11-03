@@ -522,16 +522,21 @@ class DistanceGrid {
     this._ego = new Pose();
 
     this._grid = [];
+    this.reset();
+  }
+
+  get grid() {
+    return this._grid;
+  }
+
+  reset() {
+    this._grid = [];
     for (let row = 0; row < this._numberOfRows; row++) {
       this._grid.push([]);
       for (let col = 0; col < this._numberOfCols; col++) {
         this._grid[row].push(0);
       }
     }
-  }
-
-  get grid() {
-    return this._grid;
   }
 
   updateEgo(ego) {
@@ -592,6 +597,11 @@ class DistanceToGoalGrid {
     this._obstacleGrid = obstacleGrid;
     this._ego = new Pose();
 
+    this._grid = [];
+    this.reset();
+  }
+
+  reset() {
     this._grid = [];
     for (let row = 0; row < this._numberOfRows; row++) {
       this._grid.push([]);
@@ -958,7 +968,6 @@ class Model {
     this._activeState = new State();
 
     this._astar = null;
-    this._astarIsFinished = false;
     this._astarIsStarted = false;
 
     this.updateEgo(this._ego);
@@ -1005,7 +1014,12 @@ class Model {
     Object.assign(this._ego, this._lastMovedEgo);
     this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
 
+    this._astar = null;
+    this._astarIsStarted = false;
     this._planner.reset();
+    this._distanceGrid.reset();
+    this._distanceToGoalGrid.reset();
+    this._view.deletePath();
     this._view.reset();
   }
 
@@ -1073,7 +1087,7 @@ class Model {
   }
 
   deleteMap() {
-    this._obstacleGrid.clear();
+    this._obstacleGrid.reset();
     this._view.clearAllObstacles();
   }
 
@@ -1202,32 +1216,27 @@ const Utils = require('../utils/utils').Utils;
 const Pose = require('../utils/datatypes').Pose;
 
 class ObstacleGrid {
-  constructor(width, height) {
-    this._width = width;
-    this._height = height;
+  constructor(numberOfRows, numberOfCols) {
+    this._numberOfRows = numberOfRows;
+    this._numberOfCols = numberOfCols;
     this._ego = new Pose();
-    this._grid = this.createObstacleGrid();
+
+    this._grid = [];
+    this.reset();
+  }
+
+  reset() {
+    this._grid = [];
+    for (let row = 0; row < this._numberOfRows; row++) {
+      this._grid.push([]);
+      for (let col = 0; col < this._numberOfCols; col++) {
+        this._grid[row].push(0);
+      }
+    }
   }
 
   updateEgo(ego) {
     this._ego = ego;
-  }
-
-  createObstacleGrid() {
-    const grid = [];
-
-    for (let i=0; i<this._width; ++i) {
-      grid.push([]);
-      for (let j=0; j<this._height; ++j) {
-        grid[i].push(false);
-      }
-    }
-
-    return grid;
-  }
-
-  clear() {
-    this._grid = Object.assign({}, this.createObstacleGrid());
   }
 
   setObstacle(pose) {
@@ -1258,7 +1267,7 @@ class ObstacleGrid {
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);
 
-    if (X >= this._width || Y >= this._height || X < 0 || Y < 0) {
+    if (X >= this._numberOfRows || Y >= this._numberOfCols || X < 0 || Y < 0) {
       return true;
     }
 
@@ -1270,11 +1279,11 @@ class ObstacleGrid {
   }
 
   get width() {
-    return this._width;
+    return this._numberOfRows;
   }
 
   get height() {
-    return this._height;
+    return this._numberOfCols;
   }
 }
 module.exports.ObstacleGrid = ObstacleGrid;
@@ -32829,11 +32838,13 @@ class Grid {
     this.paintSquare(row, col, colorMap.get('obstacle'));
   }
 
-  clear() {
+  deleteSquares(color) {
     for (let col=0; col<this._Y; ++col) {
       for (let row=0; row<this._X; ++row) {
         const idx = this._X * col + row;
-        this._object._objects[idx].set({fill: colorMap.get('background')});
+        if (this._object._objects[idx].fill === color) {
+          this._object._objects[idx].set({fill: colorMap.get('background')});
+        }
       }
     }
   }
@@ -33340,8 +33351,14 @@ class View {
     });
   }
 
+  deletePath() {
+    this._grid.deleteSquares(colorMap.get('path'));
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
   clearAllObstacles() {
-    this._grid.clear();
+    this._grid.deleteSquares(colorMap.get('obstacle'));
     this.bringFixedShapesInFront();
     this.render();
   }

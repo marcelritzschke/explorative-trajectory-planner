@@ -9,6 +9,11 @@ class DistanceToGoalGrid {
     this._ego = new Pose();
 
     this._grid = [];
+    this.reset();
+  }
+
+  reset() {
+    this._grid = [];
     for (let row = 0; row < this._numberOfRows; row++) {
       this._grid.push([]);
       for (let col = 0; col < this._numberOfCols; col++) {

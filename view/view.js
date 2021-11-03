@@ -397,8 +397,14 @@ class View {
     });
   }
 
+  deletePath() {
+    this._grid.deleteSquares(colorMap.get('path'));
+    this.bringFixedShapesInFront();
+    this.render();
+  }
+
   clearAllObstacles() {
-    this._grid.clear();
+    this._grid.deleteSquares(colorMap.get('obstacle'));
     this.bringFixedShapesInFront();
     this.render();
   }
