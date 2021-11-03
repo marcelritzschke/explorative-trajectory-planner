@@ -113,12 +113,27 @@ input[type="controls"] {
     color: rgb(5, 46, 107);
     background-color: rgb(255, 255, 255);
 }
-input[type="range"] {
-    cursor: pointer;
-}
-.inputButton {
+.inputButtonField {
     margin: 5px 5px 0px 5px;
     text-align: center;
+    box-sizing: border-box;
+}
+.inputButton {
+    background-color: rgb(5, 46, 107);
+    border: 1px solid white;
+    border-radius: 3px;
+    color: white;
+    margin: 0px 0px 0px 0px;
+    padding: 6px 12px;
+    text-align: center;
+    display: inline-block;
+    /* transition-duration: 0.2s; */
+    cursor: pointer;
+}
+.inputButton:hover {
+    opacity: 0.8;
+    border: 1px solid black;
+    
 }
 .inputText {
     margin: 5px 5px 0px 5px;
