@@ -75,7 +75,7 @@ header {
 }   
 .settings {
     width: 200px;
-    height: 50vh;
+    height: calc(100vh - 50px);
     position: fixed;
     z-index: 1;
     visibility: visible;
