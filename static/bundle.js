@@ -554,6 +554,10 @@ class DistanceGrid {
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);
 
+    if (X >= this._numberOfRows || Y >= this.numberOfCols || X < 0 || Y < 0) {
+      return Number.MAX_VALUE;
+    }
+
     return this._grid[X][Y];
   }
 
@@ -620,6 +624,10 @@ class DistanceToGoalGrid {
 
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);
+
+    if (X >= this._numberOfRows || Y >= this.numberOfCols || X < 0 || Y < 0) {
+      return Number.MAX_VALUE;
+    }
 
     return this._grid[X][Y];
   }
@@ -1249,6 +1257,10 @@ class ObstacleGrid {
 
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);
+
+    if (X >= this._width || Y >= this._height || X < 0 || Y < 0) {
+      return true;
+    }
 
     return this._grid[X][Y];
   }

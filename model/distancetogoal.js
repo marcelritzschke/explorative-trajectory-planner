@@ -41,6 +41,10 @@ class DistanceToGoalGrid {
     const X = this.getX(stateGlobal.x);
     const Y = this.getY(stateGlobal.y);
 
+    if (X >= this._numberOfRows || Y >= this.numberOfCols || X < 0 || Y < 0) {
+      return Number.MAX_VALUE;
+    }
+
     return this._grid[X][Y];
   }
 
