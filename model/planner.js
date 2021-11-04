@@ -61,11 +61,16 @@ class Planner {
     }
 
     this._lastTrajectory = this._explorer.getBestTrajectory(this._trajectories);
-    this._lastTrajectory.origin = this._ego;
-    this._lastTrajectory.time = timer;
+    if (this._lastTrajectory === undefined) {
+      alert('Could not plan trajectory! Start node colliding ?');
+      this._lastTrajectory = [];
+    } else {
+      this._lastTrajectory.origin = this._ego;
+      this._lastTrajectory.time = timer;
 
-    this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
-        'dotted-line', 'ChosenTrajectory');
+      this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
+          'dotted-line', 'ChosenTrajectory');
+    }
   }
 
   explore(initialState, layerTotalNumber) {

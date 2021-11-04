@@ -384,8 +384,9 @@ class View {
     this.render();
   }
 
-  clearNodeDrawn(x, y) {
-    this._grid.paintSquare(x, y, colorMap.get('background'));
+  deleteAStarNodes(x, y) {
+    this._grid.deleteSquares(colorMap.get('astartentative'));
+    this._grid.deleteSquares(colorMap.get('astarvisited'));
 
     this.bringFixedShapesInFront();
     this.render();

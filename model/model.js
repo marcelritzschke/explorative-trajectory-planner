@@ -117,6 +117,10 @@ class Model {
 
     if (this._astar.isFinished()) {
       const path = this._astar.getPath();
+      if (!path.length) {
+        alert('A* could not find a path to goal!');
+        return;
+      }
       this._view.drawPath(path);
       this._distanceGrid.calculate(path);
       this._distanceToGoalGrid.calculate(path);

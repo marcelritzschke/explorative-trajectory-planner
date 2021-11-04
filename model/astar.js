@@ -63,6 +63,7 @@ class AStar {
     this._endRow = end[0];
     this._endCol = end[1];
     this._drawnNodes = [];
+    this._openSet = new MinHeap();
 
     this.init();
   }
@@ -73,6 +74,10 @@ class AStar {
         new Node(rowIdx, colIdx, col)),
     );
     this._startNode = this._nodes[this._startRow][this._startCol];
+    if (this._startNode.value) {
+      alert('A*: Start node is colliding!');
+      return;
+    }
     this._endNode = this._nodes[this._endRow][this._endCol];
 
     this._startNode.distanceFromStart = 0;
@@ -80,7 +85,6 @@ class AStar {
         this._startCol);
     this._startNode.distanceToEnd = this._startNode.heuristic;
 
-    this._openSet = new MinHeap();
     this._openSet.push(this._startNode, this._startNode.id);
     this._closedSet = [];
 
@@ -149,19 +153,16 @@ class AStar {
   }
 
   getPath() {
+    let path = [];
     if (this._endReached) {
-      const path = this.backtrace(this._endNode);
-      this.clearNodes();
-      return path;
-    } else {
-      return [];
+      path = this.backtrace(this._endNode);
     }
+    this.clearNodes();
+    return path;
   }
 
   clearNodes() {
-    this._drawnNodes.forEach((node) => {
-      this._draw && this._view.clearNodeDrawn(node.row, node.col);
-    });
+    this._draw && this._view.deleteAStarNodes();
   }
 
   backtrace(node) {

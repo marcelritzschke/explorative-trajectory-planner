@@ -355,6 +355,7 @@ class AStar {
     this._endRow = end[0];
     this._endCol = end[1];
     this._drawnNodes = [];
+    this._openSet = new MinHeap();
 
     this.init();
   }
@@ -365,6 +366,10 @@ class AStar {
         new Node(rowIdx, colIdx, col)),
     );
     this._startNode = this._nodes[this._startRow][this._startCol];
+    if (this._startNode.value) {
+      alert('A*: Start node is colliding!');
+      return;
+    }
     this._endNode = this._nodes[this._endRow][this._endCol];
 
     this._startNode.distanceFromStart = 0;
@@ -372,7 +377,6 @@ class AStar {
         this._startCol);
     this._startNode.distanceToEnd = this._startNode.heuristic;
 
-    this._openSet = new MinHeap();
     this._openSet.push(this._startNode, this._startNode.id);
     this._closedSet = [];
 
@@ -441,19 +445,16 @@ class AStar {
   }
 
   getPath() {
+    let path = [];
     if (this._endReached) {
-      const path = this.backtrace(this._endNode);
-      this.clearNodes();
-      return path;
-    } else {
-      return [];
+      path = this.backtrace(this._endNode);
     }
+    this.clearNodes();
+    return path;
   }
 
   clearNodes() {
-    this._drawnNodes.forEach((node) => {
-      this._draw && this._view.clearNodeDrawn(node.row, node.col);
-    });
+    this._draw && this._view.deleteAStarNodes();
   }
 
   backtrace(node) {
@@ -1044,6 +1045,10 @@ class Model {
 
     if (this._astar.isFinished()) {
       const path = this._astar.getPath();
+      if (!path.length) {
+        alert('A* could not find a path to goal!');
+        return;
+      }
       this._view.drawPath(path);
       this._distanceGrid.calculate(path);
       this._distanceToGoalGrid.calculate(path);
@@ -1352,11 +1357,16 @@ class Planner {
     }
 
     this._lastTrajectory = this._explorer.getBestTrajectory(this._trajectories);
-    this._lastTrajectory.origin = this._ego;
-    this._lastTrajectory.time = timer;
+    if (this._lastTrajectory === undefined) {
+      alert('Could not plan trajectory! Start node colliding ?');
+      this._lastTrajectory = [];
+    } else {
+      this._lastTrajectory.origin = this._ego;
+      this._lastTrajectory.time = timer;
 
-    this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
-        'dotted-line', 'ChosenTrajectory');
+      this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
+          'dotted-line', 'ChosenTrajectory');
+    }
   }
 
   explore(initialState, layerTotalNumber) {
@@ -33338,8 +33348,9 @@ class View {
     this.render();
   }
 
-  clearNodeDrawn(x, y) {
-    this._grid.paintSquare(x, y, colorMap.get('background'));
+  deleteAStarNodes(x, y) {
+    this._grid.deleteSquares(colorMap.get('astartentative'));
+    this._grid.deleteSquares(colorMap.get('astarvisited'));
 
     this.bringFixedShapesInFront();
     this.render();
