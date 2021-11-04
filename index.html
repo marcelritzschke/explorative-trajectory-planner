@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="style/buttons.css">
     <link rel="stylesheet" href="style/style.css">
     <link rel="stylesheet" href="style/inputs.css">
-    <script src="utils/toggleSettingsButton.js"></script>
     <script src="utils/applySliderValue.js"></script>
     <script src="static/bundle.js"></script>
 </head>
@@ -17,9 +16,6 @@
 
     </header>
     <section class="control-section">
-        <div onclick="toggleSettings()">
-            <label for="settingsToggle" id="settingsButton" class="settingsbutton">☰</label>
-        </div>
         <div class="control">
             <div onclick="getController().step()" class="step-button"></div>
             <div onclick="getController().play()" class="play-button"></div>
@@ -29,87 +25,86 @@
         <div id="timer" class="timer">00:00:000</div>
     </section>
     
-    <section class="container">
-        <input id="settingsToggle" type="checkbox" />
-        <div class="settings">
-            <div class="inputButtonField">
-                <button class="inputButton" id="makePath" onclick="getController().makePath()">
+    <section class="content">
+        <div class="controlPanel">
+            <div class="inputField">
+                <button class="button" id="makePath" onclick="getController().makePath()">
                     Plan Path
                 </button>
             </div>     
-            <div class="inputText">
+            <div class="textField">
                 <span style="font-size:x-small;">Layers: </span>
                 <span id="layerNumberValue" style="font-size:smaller;">2</span>
             </div>
-            <div class="inputSlider">
+            <div class="inputField">
                 <input id="layerNumber" type="range" min="1" max ="10" step="1"
                     value="2" onchange="getController().updateLayerNumber()" oninput="applySliderValue('layerNumber');" />
             </div>
-            <div class="inputText">
+            <div class="textField">
                 <span style="font-size:x-small;">Exploration Frequency (s): </span>
                 <span id="explorationFrequencyValue" style="font-size:smaller;">1.5</span>
             </div>
-            <div class="inputSlider">
+            <div class="inputField">
                 <input id="explorationFrequency" type="range" min=".1" max ="3" step=".1"
                     value="1.5" onchange="getController().updateExplorationFrequency()" oninput="applySliderValue('explorationFrequency');" />
             </div>
-            <div class="inputText">
+            <div class="textField">
                 <span style="font-size:x-small;">Layer Length (s): </span>
                 <span id="timestepValue" style="font-size:smaller;">2</span>
             </div>
-            <div class="inputSlider">
+            <div class="inputField">
                 <input id="timestep" type="range" min=".5" max ="5" step=".5"
                     value="2" onchange="getController().updateTimestep()" oninput="applySliderValue('timestep');" />
             </div>
-            <div class="inputText">
+            <div class="textField">
                 <span style="font-size:x-small;">Interpolation (s): </span>
                 <span id="intertimeValue" style="font-size:smaller;">0.2</span>
             </div>
-            <div class="inputSlider">
+            <div class="inputField">
                 <input id="intertime" type="range" min=".05" max ="1" step=".05"
                     value=".2" onchange="getController().updateIntertime()" oninput="applySliderValue('intertime');" />
             </div>
-            <div class="inputText" style="font-size:x-small;">Velocities (m/s)</div>
-            <div class="inputSlider">
+            <div class="textField" style="font-size:x-small;">Velocities (m/s)</div>
+            <div class="inputField">
                 <input id="velocities" type="controls" value="-1 0 2" onchange="getController().updateVelocities()"/>
             </div>
-            <div class="inputText" style="font-size:x-small;">Steering Angles (°)</div>
-            <div class="inputSlider">
+            <div class="textField" style="font-size:x-small;">Steering Angles (°)</div>
+            <div class="inputField">
                 <input id="steeringAngles" type="controls" value="-30 -15 0 15 30"
                     width="200" onchange="getController().updateSteeringAngles()"/>
             </div>
-            <div class="inputText" style="font-size:x-small;">Cost Driving</div>
-            <div class="inputSlider">
+            <div class="textField" style="font-size:x-small;">Cost Driving</div>
+            <div class="inputField">
                 <input id="costDriving" type="controls" value="1"
                     width="200" onchange="getController().updateCostDriving()"/>
             </div>
-            <div class="inputText" style="font-size:x-small;">Cost Distance to Path</div>
-            <div class="inputSlider">
+            <div class="textField" style="font-size:x-small;">Cost Distance to Path</div>
+            <div class="inputField">
                 <input id="costDistanceToPath" type="controls" value="1"
                     width="200" onchange="getController().updateCostDistanceToPath()"/>
             </div>
-            <div class="inputText" style="font-size:x-small;">Cost Distance to Goal</div>
-            <div class="inputSlider">
+            <div class="textField" style="font-size:x-small;">Cost Distance to Goal</div>
+            <div class="inputField">
                 <input id="costDistanceToGoal" type="controls" value="10"
                     width="200" onchange="getController().updateCostDistanceToGoal()"/>
             </div>
-            <div class="inputText" style="font-size:x-small;">Cost Distance to Goal Euclidian</div>
-            <div class="inputSlider">
+            <div class="textField" style="font-size:x-small;">Cost Distance to Goal Euclidian</div>
+            <div class="inputField">
                 <input id="costDistanceToGoalEuclidian" type="controls" value="10"
                     width="200" onchange="getController().updateCostDistanceToGoalEuclidian()"/>
             </div>
-            <div class="inputText" style="font-size:x-small;">Draw Exploration</div>
-            <div class="inputSlider">
+            <div class="textField" style="font-size:x-small;">Draw Exploration</div>
+            <div class="inputField">
                 <input id="drawExploration" type="checkbox" checked onchange="getController().updateDrawExploration()"/>
             </div>
-            <div class="inputButtonField">
-                <button class="inputButton" id="deleteMap" onclick="getController().deleteMap()">
+            <div class="inputField">
+                <button class="button" id="deleteMap" onclick="getController().deleteMap()">
                     Delete Map
                 </button>
             </div> 
         </div>
-        <div>
-            <canvas id="mainView" class="canvas"></canvas>
+        <div class="canvas">
+            <canvas id="mainView"></canvas>
         </div>
     </section>
     <footer></footer>
