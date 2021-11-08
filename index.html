@@ -8,10 +8,11 @@
     <link rel="stylesheet" href="style/buttons.css">
     <link rel="stylesheet" href="style/style.css">
     <link rel="stylesheet" href="style/inputs.css">
+    <script src="utils/tutorial.js"></script>
     <script src="utils/applySliderValue.js"></script>
     <script src="static/bundle.js"></script>
 </head>
-<body onload="initialize()">
+<body onload="initialize(); setupTutorial();">
     <header>
 
     </header>
@@ -105,6 +106,16 @@
         </div>
         <div class="canvas">
             <canvas id="mainView"></canvas>
+        </div>
+        <div id="tutorial">
+            <h3>Welcome to Explorative Trajectory Planning Visualizer!</h3>
+            <h6>This short tutorial will walk you through all of the features of this application.</h6>
+            <p>If you want to dive right in, feel free to press the "Skip Tutorial" button below. Otherwise, press "Next"!</p>
+            <div id="tutorialCounter">1/9</div>
+            <img id="mainTutorialImage" src="">
+            <button id="nextButton" class="button" type="button">Next</button>
+            <button id="previousButton" class="button" type="button">Previous</button>
+            <button id="skipButton" class="button" type="button">Skip Tutorial</button>
         </div>
     </section>
     <footer></footer>
