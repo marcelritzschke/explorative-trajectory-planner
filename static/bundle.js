@@ -1,4 +1,1540 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const View = require('../view/view').View;
+const Model = require('../model/model').Model;
+const Controller = require('../controller/controller').Controller;
+const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
+const DistanceGrid = require('../model/distancegrid').DistanceGrid;
+const DistanceToGoalGrid =
+    require('../model/distancetogoal').DistanceToGoalGrid;
+const Parameters = require('../utils/datatypes').Parameters;
+const Planner = require('../model/planner').Planner;
+const Motion = require('../model/motion').Motion;
+const Explorer = require('../model/explorer').Explorer;
+
+class Builder {
+  constructor(canvas, scale) {
+    this._canvas = canvas;
+    this._scale = scale;
+    this._width = canvas.width;
+    this._height = canvas.height;
+  }
+
+  build() {
+    // View
+    this._view = new View(this._canvas, this._scale);
+
+    // Model
+    this._obstacleGrid = new ObstacleGrid(
+        this._width/ this._scale,
+        this._height/ this._scale,
+    );
+
+    this._distanceGrid = new DistanceGrid(
+        parseInt(this._width/ this._scale),
+        parseInt(this._height/ this._scale),
+    );
+
+    this._distanceToGoalGrid = new DistanceToGoalGrid(
+        parseInt(this._width/ this._scale),
+        parseInt(this._height/ this._scale),
+        this._obstacleGrid,
+    );
+
+    this._parameters = new Parameters();
+
+    this._explorer = new Explorer(
+        this._view,
+        this._parameters,
+        this._obstacleGrid,
+        this._distanceGrid,
+        this._distanceToGoalGrid,
+    );
+
+    this._planner = new Planner(this._view,
+        this._parameters,
+        this._explorer,
+    );
+
+    this._motion = new Motion(this._planner, this._view);
+
+    this._model = new Model(this._view,
+        this._width,
+        this._height,
+        this._scale,
+        this._obstacleGrid,
+        this._distanceGrid,
+        this._distanceToGoalGrid,
+        this._parameters,
+        this._planner,
+        this._motion,
+    );
+
+    // Controller
+    this._controller = new Controller(this._model);
+  }
+
+  getModel() {
+    return this._model;
+  }
+
+  getView() {
+    return this._view;
+  }
+
+  getController() {
+    return this._controller;
+  }
+}
+module.exports.Builder = Builder;
+
+},{"../controller/controller":2,"../model/distancegrid":5,"../model/distancetogoal":6,"../model/explorer":7,"../model/model":8,"../model/motion":9,"../model/obstaclegrid":10,"../model/planner":11,"../utils/datatypes":18,"../view/view":23}],2:[function(require,module,exports){
+class Controller {
+  constructor(model) {
+    this._model = model;
+    this._intervalHandlerPath = null;
+    this._intervalHandlerTraj = null;
+    this._timer = 0;
+    this._baseFrequencyPath_ms = 10;
+    this._baseFrequencyTraj_ms = 50;
+
+
+    document.onkeydown = function(e) {
+      if (e.key === 'Escape') {
+        model.escapeKeyPressed();
+      }
+    };
+
+    this.reset();
+  }
+
+  makePath() {
+    this._intervalHandlerPath = window.setInterval(() =>
+      this.executePathPlanner(), this._baseFrequencyPath_ms);
+
+    this.setControlsInactive();
+    this.setPathButtonInactive();
+  }
+
+  executePathPlanner() {
+    if (this._model.isPathPlannerFinished()) {
+      window.clearInterval(this._intervalHandlerPath);
+      this.setControlsActive();
+      this.setPathButtonActive();
+    } else {
+      this._model.runPathPlanner();
+    }
+  }
+
+  step() {
+    this.execute();
+  }
+
+  play() {
+    this._intervalHandlerTraj = window.setInterval(() => this.execute(),
+        this._baseFrequencyTraj_ms);
+    this.setPathButtonInactive();
+  }
+
+  pause() {
+    window.clearInterval(this._intervalHandlerTraj);
+    this.setPathButtonActive();
+  }
+
+  execute() {
+    this._model.execute(this._timer);
+    this._timer += this._baseFrequencyTraj_ms/ 1000;
+  }
+
+  reset() {
+    window.clearInterval(this._intervalHandlerTraj);
+    window.clearInterval(this._intervalHandlerPath);
+    this.setPathButtonActive();
+    this._timer = 0;
+    this._model.reset();
+    this.updateLayerNumber();
+    this.updateTimestep();
+    this.updateIntertime();
+    this.updateDrawExploration();
+    this.updateVelocities();
+    this.updateSteeringAngles();
+  }
+
+  setControlsInactive() {
+    document.getElementById('controls').innerHTML = `
+      <div onclick="" class="step-button step-button-inactive"></div>
+      <div onclick="" class="play-button play-button-inactive"></div>
+      <div onclick="" class="pause-button pause-button-inactive"></div>
+      <div onclick="" class="reset-button reset-button-inactive"></div>
+    `;
+  }
+
+  setPathButtonInactive() {
+    document.getElementById('inputFieldPath').innerHTML = `
+    <button class="button button-inactive" id="makePath" onclick="">
+    Plan Path
+    </button>
+    `;
+  }
+
+  setControlsActive() {
+    document.getElementById('controls').innerHTML = `
+      <div onclick="getController().step()"
+        class="step-button step-button-active"></div>
+      <div onclick="getController().play()"
+        class="play-button play-button-active"></div>
+      <div onclick="getController().pause()"
+        class="pause-button pause-button-active"></div>
+      <div onclick="getController().reset()"
+        class="reset-button reset-button-active"></div>
+  `;
+  }
+
+  setPathButtonActive() {
+    document.getElementById('inputFieldPath').innerHTML = `
+    <button class="button" id="makePath" onclick="getController().makePath()">
+    Plan Path
+    </button>
+    `;
+  }
+
+  updateLayerNumber() {
+    this._model.layerTotalNumber =
+        parseInt(document.getElementById('layerNumber').value);
+  }
+
+  updateExplorationFrequency() {
+    this._model.plannerFrequency_ms = parseFloat(
+        document.getElementById('explorationFrequency').value) * 1000;
+  }
+
+  updateTimestep() {
+    this._model.timestep =
+        parseFloat(document.getElementById('timestep').value);
+  }
+
+  updateIntertime() {
+    this._model.intertime =
+        parseFloat(document.getElementById('intertime').value);
+  }
+
+  updateDrawExploration() {
+    this._model.drawExploration =
+        document.getElementById('drawExploration').checked;
+  }
+
+  updateVelocities() {
+    const input = document.getElementById('velocities').value;
+    const values = input.split(' ');
+
+    const velocities = [];
+    for (const value of values) {
+      velocities.push(parseFloat(value));
+    }
+
+    this._model.velocities = velocities;
+  }
+
+  updateSteeringAngles() {
+    const input = document.getElementById('steeringAngles').value;
+    const values = input.split(' ');
+
+    const steeringAngles = [];
+    for (const value of values) {
+      steeringAngles.push(parseFloat(value) * Math.PI / 180);
+    }
+
+    this._model.steeringAngles = steeringAngles;
+  }
+
+  deleteMap() {
+    this._model.deleteMap();
+  }
+
+  updateCostDriving() {
+    this._model.parameters.costDriving =
+        parseFloat(document.getElementById('costDriving').value);
+  }
+
+  updateCostDistanceToPath() {
+    this._model.parameters.costDistanceToPath =
+        parseFloat(document.getElementById('costDistanceToPath').value);
+  }
+
+  updateCostDistanceToGoal() {
+    this._model.parameters.costDistanceToGoal =
+        parseFloat(document.getElementById('costDistanceToGoal').value);
+  }
+
+  updateCostDistanceToGoalEuclidian() {
+    this._model.parameters.costDistanceToGoalEuclidian = parseFloat(
+        document.getElementById('costDistanceToGoalEuclidian').value);
+  }
+}
+module.exports.Controller = Controller;
+
+},{}],3:[function(require,module,exports){
+const Builder = require('./builder/builder').Builder;
+
+window.initialize = function() {
+  const elem = document.querySelector('.canvas');
+  const style = getComputedStyle(elem);
+  const width = parseFloat(style.width);
+  const height = parseFloat(style.height);
+  const scale = 20; // pixel per meter
+
+  canvas = new fabric.Canvas('mainView', {
+    width: width,
+    height: height,
+    renderOnAddRemove: false,
+    selection: false,
+  });
+
+  builder = new Builder(canvas, scale);
+  builder.build();
+};
+let canvas;
+let builder;
+
+// eslint-disable-next-line no-unused-vars
+window.getCanvas = function() {
+  return canvas;
+};
+
+// eslint-disable-next-line no-unused-vars
+window.getView = function() {
+  return builder.getView();
+};
+
+// eslint-disable-next-line no-unused-vars
+window.getModel = function() {
+  return builder.getModel();
+};
+
+// eslint-disable-next-line no-unused-vars
+window.getController = function() {
+  return builder.getController();
+};
+
+},{"./builder/builder":1}],4:[function(require,module,exports){
+const MinHeap = require('../utils/minheap').MinHeap;
+
+class Node {
+  constructor(row, col, value) {
+    this._id = String(row) + '-' + String(col);
+    this._row = row;
+    this._col = col;
+    this._value = value;
+    this._distanceFromStart = Number.MAX_VALUE; // g
+    this._heuristic = Number.MAX_VALUE; // h
+    this._distanceToEnd = Number.MAX_VALUE; // f=g+h
+    this._cameFrom = null;
+  }
+
+  set distanceFromStart(distance) {
+    this._distanceFromStart = distance;
+  }
+  set distanceToEnd(distance) {
+    this._distanceToEnd = distance;
+  }
+  set cameFrom(from) {
+    this._cameFrom = from;
+  }
+  set heuristic(value) {
+    this._heuristic = value;
+  }
+
+  get id() {
+    return this._id;
+  }
+  get value() {
+    return this._value;
+  }
+  get row() {
+    return this._row;
+  }
+  get col() {
+    return this._col;
+  }
+  get distanceFromStart() {
+    return this._distanceFromStart;
+  }
+  get distanceToEnd() {
+    return this._distanceToEnd;
+  }
+  get cameFrom() {
+    return this._cameFrom;
+  }
+  get heuristic() {
+    return this._heuristic;
+  }
+}
+
+class AStar {
+  constructor(start, end, grid, draw = false, view = undefined) {
+    this._draw = draw;
+    this._view = view;
+    this._start = start;
+    this._end = end;
+    this._grid = grid; // arr[arr[bool]]
+    this._startRow = start[0];
+    this._startCol = start[1];
+    this._endRow = end[0];
+    this._endCol = end[1];
+    this._drawnNodes = [];
+    this._openSet = new MinHeap();
+
+    this.init();
+  }
+
+  init() {
+    this._nodes = this._grid.map((row, rowIdx) =>
+      row.map((col, colIdx) =>
+        new Node(rowIdx, colIdx, col)),
+    );
+    this._startNode = this._nodes[this._startRow][this._startCol];
+    if (this._startNode.value) {
+      alert('A*: Start node is colliding!');
+      return;
+    }
+    this._endNode = this._nodes[this._endRow][this._endCol];
+
+    this._startNode.distanceFromStart = 0;
+    this._startNode.heuristic = this.calculateDistance(this._startRow,
+        this._startCol);
+    this._startNode.distanceToEnd = this._startNode.heuristic;
+
+    this._openSet.push(this._startNode, this._startNode.id);
+    this._closedSet = [];
+
+    this._endReached = false;
+  }
+
+  iterate() {
+    if (!this._openSet.isEmpty() && !this._endReached) {
+      const node = this.getMinNode();
+      this._openSet.pop();
+      this._closedSet.push(node);
+      this._draw && this._view.drawNodeAStarVisited(node.row, node.col);
+      this._drawnNodes.push(node);
+
+      const neighbors = this.getNeighbors(node, this._nodes);
+      neighbors.filter((i) => !this.isInArray(i, this._closedSet))
+          .filter((j) => !j.value)
+          .forEach((neighbor) => {
+            // new tentative distance
+            const newDist = node.distanceFromStart + 1 + this.calculateDistance(
+                neighbor.row, neighbor.col,
+            );
+
+            // Check if node was already visited before:
+            // If distanceToEnd is not Number.MAX_VALUE anymore, it must be in
+            // open set or closed set. Since neighbors have been filtered by
+            // closed set, it will be in open set. Remember, in case node
+            // will be updated in the following section.
+            let isInOpenSet = false;
+            if (neighbor.distanceToEnd < Number.MAX_VALUE) {
+              isInOpenSet = true;
+            }
+
+            // Update node, if the distance to end is shorter from node.
+            if (newDist < neighbor.distanceToEnd) {
+              neighbor.distanceFromStart = node.distanceFromStart + 1;
+              neighbor.heuristic = this.calculateDistance(neighbor.row,
+                  neighbor.col);
+              neighbor.distanceToEnd = neighbor.distanceFromStart +
+                  neighbor.heuristic;
+              neighbor.cameFrom = node;
+            }
+
+            // Push neighbor to open set or update heap.
+            if (!isInOpenSet) {
+              this._openSet.push(neighbor.distanceToEnd,
+                  neighbor.id, neighbor.heuristic);
+              this._draw &&
+                this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
+              this._drawnNodes.push(neighbor);
+            } else {
+              this._openSet.update(neighbor.distanceToEnd,
+                  neighbor.id, neighbor.heuristic);
+            }
+
+            // TODO: early return if end is reached.
+            if (neighbor.id === this._endNode.id) {
+              this._endReached = true;
+            }
+          });
+    }
+  }
+
+  isFinished() {
+    return this._endReached || this._openSet.isEmpty();
+  }
+
+  getPath() {
+    let path = [];
+    if (this._endReached) {
+      path = this.backtrace(this._endNode);
+    }
+    this.clearNodes();
+    return path;
+  }
+
+  clearNodes() {
+    this._draw && this._view.deleteAStarNodes();
+  }
+
+  backtrace(node) {
+    const result = [[node.row, node.col]];
+    let current = node;
+    while (current.cameFrom != null) {
+      current = current.cameFrom;
+      result.unshift([current.row, current.col]);
+    }
+    return result;
+  }
+
+  getMinNode() {
+    const id = this._openSet.peekIdentifier();
+    const row = id.split('-')[0];
+    const col = id.split('-')[1];
+
+    return this._nodes[row][col];
+  }
+
+  getNeighbors(node, nodes) {
+    const row = node.row;
+    const col = node.col;
+
+    const neighbors = [];
+    if (row > 0) {
+      neighbors.push(nodes[row - 1][col]);
+    }
+    if (row < nodes.length - 1) {
+      neighbors.push(nodes[row + 1][col]);
+    }
+    if (col > 0) {
+      neighbors.push(nodes[row][col - 1]);
+    }
+    if (col < nodes[0].length - 1) {
+      neighbors.push(nodes[row][col + 1]);
+    }
+
+    return neighbors;
+  }
+
+  calculateDistance(startRow, startCol) {
+    return Math.abs(startRow - this._endRow) +
+        Math.abs(startCol - this._endCol);
+  }
+
+  isInArray(node, nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (node.id === nodes[i].id) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+module.exports.AStar = AStar;
+
+},{"../utils/minheap":19}],5:[function(require,module,exports){
+const Utils = require('../utils/utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
+
+class DistanceGrid {
+  constructor(numberOfRows, numberOfCols) {
+    this._numberOfRows = numberOfRows;
+    this._numberOfCols = numberOfCols;
+    this._ego = new Pose();
+
+    this._grid = [];
+    this.reset();
+  }
+
+  get grid() {
+    return this._grid;
+  }
+
+  reset() {
+    this._grid = [];
+    for (let row = 0; row < this._numberOfRows; row++) {
+      this._grid.push([]);
+      for (let col = 0; col < this._numberOfCols; col++) {
+        this._grid[row].push(0);
+      }
+    }
+  }
+
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
+  getX(x) {
+    return parseInt(x);
+  }
+
+  getY(y) {
+    return parseInt(y);
+  }
+
+  getDistance(state) {
+    let stateGlobal = Object.assign({}, state);
+
+    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
+
+    const X = this.getX(stateGlobal.x);
+    const Y = this.getY(stateGlobal.y);
+
+    if (X >= this._numberOfRows || Y >= this.numberOfCols || X < 0 || Y < 0) {
+      return Number.MAX_VALUE;
+    }
+
+    return this._grid[X][Y];
+  }
+
+  calculate(path) {
+    for (let row = 0; row < this._numberOfRows; row++) {
+      for (let col = 0; col < this._numberOfCols; col++) {
+        let minDistance = Number.MAX_VALUE;
+        path.forEach((node) => {
+          const dist = this.calculateDistance(row, col, node[0], node[1]);
+          minDistance = Math.min(minDistance, dist);
+        });
+        this._grid[row][col] = minDistance;
+      }
+    }
+  }
+
+  calculateDistance(startRow, startCol, endRow, endCol) {
+    return Math.abs(startRow - endRow) +
+        Math.abs(startCol - endCol);
+  }
+}
+module.exports.DistanceGrid = DistanceGrid;
+
+},{"../utils/datatypes":18,"../utils/utils":20}],6:[function(require,module,exports){
+const Utils = require('../utils/utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
+
+class DistanceToGoalGrid {
+  constructor(numberOfRows, numberOfCols, obstacleGrid, model) {
+    this._numberOfRows = numberOfRows;
+    this._numberOfCols = numberOfCols;
+    this._obstacleGrid = obstacleGrid;
+    this._ego = new Pose();
+
+    this._grid = [];
+    this.reset();
+  }
+
+  reset() {
+    this._grid = [];
+    for (let row = 0; row < this._numberOfRows; row++) {
+      this._grid.push([]);
+      for (let col = 0; col < this._numberOfCols; col++) {
+        this._grid[row].push(0);
+      }
+    }
+  }
+
+  get grid() {
+    return this._grid;
+  }
+
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
+  getX(x) {
+    return parseInt(x);
+  }
+
+  getY(y) {
+    return parseInt(y);
+  }
+
+  getDistance(state) {
+    let stateGlobal = Object.assign({}, state);
+
+    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
+
+    const X = this.getX(stateGlobal.x);
+    const Y = this.getY(stateGlobal.y);
+
+    if (X >= this._numberOfRows || Y >= this.numberOfCols || X < 0 || Y < 0) {
+      return Number.MAX_VALUE;
+    }
+
+    return this._grid[X][Y];
+  }
+
+  calculate(path) {
+    for (let row = 0; row < this._numberOfRows; row++) {
+      for (let col = 0; col < this._numberOfCols; col++) {
+        let closest = Number.MAX_VALUE;
+        let minDistance = Number.MAX_VALUE;
+        path.forEach((node, idx) => {
+          const dist = this.calculateDistance(row, col, node[0], node[1]);
+          if (dist < minDistance) {
+            minDistance = dist;
+            closest = idx;
+          }
+        });
+        this._grid[row][col] = path.length - closest - 1;
+      }
+    }
+  }
+
+  calculateDistance(startRow, startCol, endRow, endCol) {
+    return Math.abs(startRow - endRow) +
+        Math.abs(startCol - endCol);
+  }
+}
+module.exports.DistanceToGoalGrid = DistanceToGoalGrid;
+
+},{"../utils/datatypes":18,"../utils/utils":20}],7:[function(require,module,exports){
+const Utils = require('../utils/utils').Utils;
+const StateFilter = require('./statefilter').StateFilter;
+const CarShape = require('../utils/datatypes').CarShape;
+const State = require('../utils/datatypes').State;
+const Segment = require('../utils/datatypes').Segment;
+const Trajectory = require('../utils/datatypes').Trajectory;
+const Pose = require('../utils/datatypes').Pose;
+
+class Explorer {
+  constructor(view,
+      parameters,
+      obstacleGrid,
+      distanceGrid,
+      distanceToGoalGrid,
+  ) {
+    this._parameters = parameters;
+    this._goal = new Pose();
+    this._obstacleGrid = obstacleGrid;
+    this._distanceGrid = distanceGrid;
+    this._distanceToGoalGrid = distanceToGoalGrid;
+    this._wheelBase = 2.64 / 2;
+    this._timestep = 2.;
+    this._intertime = 0.2;
+    this._steeringAngles = [-.6, -.3, .0, .3, .6];
+    this._velocities = [.0, 1.];
+    this._segments = [];
+    this._goalTolerance = 1.;
+    this._initialState = new State();
+    this._statesFilter = new StateFilter(view, 1000);
+  }
+
+  set timestep(value) {
+    this._timestep = value;
+  }
+
+  set intertime(value) {
+    this._intertime = value;
+  }
+
+  set velocities(value) {
+    this._velocities = value;
+  }
+
+  set steeringAngles(value) {
+    this._steeringAngles = value;
+  }
+
+  updateGoal(goal) {
+    this._goal = goal;
+  }
+
+  reset() {
+    this._segments = [];
+    this._initialState = new State();
+  }
+
+  setInitialState(initialState) {
+    this.initialState = initialState;
+  }
+
+  iterateLayer(layerNumber) {
+    if (layerNumber === 0) {
+      const newSegment = new Segment([this.initialState]);
+      this._segments.push([newSegment]);
+    }
+
+    this._segments.push([]);
+    for (let j=0; j<this._segments[layerNumber].length; ++j) {
+      const state = Object.assign({},
+          this._segments[layerNumber][j].lastState);
+
+      if (state.isColliding) {
+        continue;
+      }
+
+      this._steeringAngles.forEach((angle) => {
+        this._velocities.forEach((veloctity) => {
+          const newSegment = new Segment(
+              this.calculateStates(state, angle, veloctity));
+
+          newSegment.prevIdx = j;
+          if (newSegment.lastState.isColliding) {
+            newSegment.cost = Infinity;
+          } else {
+            this.addCostDriving(newSegment);
+            this.addCostDistanceToPath(newSegment);
+            this.addCostDistanceToGoal(newSegment);
+          }
+
+          this._segments[layerNumber+1].push(newSegment);
+        });
+      });
+    }
+
+    this._segments[layerNumber+1] =
+        this._statesFilter.getFilteredStates(this._segments[layerNumber+1]);
+
+    return this._segments[layerNumber+1];
+  }
+
+  getTrajectories() {
+    const trajectories = [];
+    const lastLayerIdx = this._segments.length - 1;
+    for (let i=0; i<this._segments[lastLayerIdx].length; ++i) {
+      trajectories.push(this.getTrajectoryBacktraceSegment(i));
+    }
+    this.addCostDistanceToGoalEuclidian(trajectories);
+
+    return trajectories;
+  }
+
+  getTrajectoryBacktraceSegment(index) {
+    const lastLayerIdx = this._segments.length - 1;
+    const trajectory = new Trajectory();
+    let layerIdx = lastLayerIdx;
+    let segmentIdx = index;
+    while (layerIdx >= 0) {
+      const segment = this._segments[layerIdx][segmentIdx];
+      trajectory.unshift(segment);
+      segmentIdx = segment.prevIdx;
+      layerIdx--;
+    }
+    trajectory.cost = trajectory.lastSegment.cost;
+
+    return trajectory;
+  }
+
+  addCostDriving(segment) {
+    let cost = 0;
+    segment.states.forEach((state) => {
+      cost += Math.abs(state.v);
+      cost += Math.abs(state.steeringAngle);
+    });
+    segment.cost += this._parameters.costDriving * cost;
+  }
+
+  addCostDistanceToPath(segment) {
+    let cost = 0;
+    segment.states.forEach((state) => {
+      cost += this._distanceGrid.getDistance(state);
+    });
+    segment.cost += Math.pow(this._parameters.costDistanceToPath * cost, 2);
+  }
+
+  addCostDistanceToGoal(segment) {
+    let cost = 0;
+    segment.states.forEach((state) => {
+      cost += this._distanceToGoalGrid.getDistance(state);
+    });
+    segment.cost += this._parameters.costDistanceToGoal * cost;
+  }
+
+  addCostDistanceToGoalEuclidian(trajectories) {
+    trajectories.forEach((trajectory) => {
+      const x = this._goal.x - trajectory.lastSegment.lastState.x;
+      const y = this._goal.y - trajectory.lastSegment.lastState.y;
+      const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+      trajectory.cost +=
+          this._parameters.costDistanceToGoalEuclidian * distance;
+
+      if (distance <= this._goalTolerance) {
+        trajectory.isReachGoal = true;
+      }
+    });
+  }
+
+  getBestTrajectory(trajectories) {
+    let bestCost = Infinity;
+    let bestIdx = null;
+    trajectories.forEach((trajectory, index) => {
+      if (trajectory.cost <= bestCost) {
+        bestCost = trajectory.cost;
+        bestIdx = index;
+      }
+    });
+
+    return trajectories[bestIdx];
+  }
+
+  isColliding(state) {
+    let colliding = false;
+
+    const corners = new CarShape().getCorners(state);
+    for (const corner of corners) {
+      colliding |= this._obstacleGrid.isColliding(corner);
+    }
+    return colliding;
+  }
+
+  calculateStates(initialState, steeringAngle, veloctity) {
+    const intersteps = this._timestep/ this._intertime;
+    const states = [initialState];
+    for (let i = 0; i < intersteps; i++) {
+      const angle = (i+1) / intersteps * (steeringAngle -
+          initialState.steeringAngle) + initialState.steeringAngle;
+      const vel = (i+1) / intersteps *
+          (veloctity - initialState.v) + initialState.v;
+
+      if (Math.abs(angle) < Number.EPSILON) {
+        states.push(this.calculateStraightMove(states[i], vel));
+      } else {
+        states.push(this.calculateCrookedMove(states[i], angle, vel));
+      }
+    }
+    return states;
+  }
+
+  /**
+   * Calculating the next vehicle state by assuming a single track model.
+   * Means the radius of the curve is calculated by r = wheelBase /
+   * sin(steeringAngle). The x and y coordinates are then calculated from
+   * x = r * cos(wt) and y = r * sin(wt) with w = v / r. The direction change
+   * is phi = w * t = v * t / r.
+   * @param {State} prevState Used to add up the values
+   * @param {number} steeringAngle Steering angle of tire
+   * @param {number} veloctity Current constant velocity
+   * @return {State}
+   */
+  calculateCrookedMove(prevState, steeringAngle, veloctity) {
+    const r = this._wheelBase / Math.sin(steeringAngle);
+
+    const newState = Object.assign({}, prevState);
+    newState.x = r * Math.sin(veloctity * this._intertime / r);
+    newState.y = r * Math.cos(veloctity * this._intertime / r) - r;
+
+    // TODO: The following might be merged with the formulas above.
+    const res = Utils.rotatePoint(newState.x, newState.y, prevState.angle);
+    newState.x = res[0] + prevState.x;
+    newState.y = res[1] + prevState.y;
+
+    newState.steeringAngle = steeringAngle;
+    newState.angle += -veloctity * this._intertime / r;
+    newState.v = veloctity;
+    newState.t += this._intertime;
+    newState.isColliding |= this.isColliding(newState);
+
+    // Remove initial state since it is already in previous segment
+    // states.splice(0, 1);
+
+    return newState;
+  }
+
+  calculateStraightMove(prevState, veloctity) {
+    const newState = Object.assign({}, prevState);
+    newState.x += veloctity * this._intertime * Math.cos(prevState.angle);
+    newState.y += veloctity * this._intertime * Math.sin(prevState.angle);
+
+    newState.steeringAngle = 0;
+    newState.v = veloctity;
+    newState.t += this._intertime;
+    newState.isColliding |= this.isColliding(newState);
+
+    return newState;
+  }
+}
+module.exports.Explorer = Explorer;
+
+},{"../utils/datatypes":18,"../utils/utils":20,"./statefilter":12}],8:[function(require,module,exports){
+const Pose = require('../utils/datatypes').Pose;
+const State = require('../utils/datatypes').State;
+const Utils = require('../utils/utils').Utils;
+const AStar = require('../model/astar').AStar;
+
+class Model {
+  constructor(view,
+      width,
+      height,
+      scale,
+      obstacleGrid,
+      distanceGrid,
+      distanceToGoalGrid,
+      parameters,
+      planner,
+      motion,
+  ) {
+    this._view = view;
+
+    this._scale = scale;
+    this._width = width;
+    this._height = height;
+
+    this._ego = Utils.convertToMetric(this._scale,
+        new Pose(width/ 4, height/ 8, 110));
+    this._goal = Utils.convertToMetric(this._scale,
+        new Pose(width * .75, height/ 8));
+    this._lastMovedEgo = Object.assign({}, this._ego);
+
+    this._obstacleGrid = obstacleGrid;
+    this._distanceGrid = distanceGrid;
+    this._distanceToGoalGrid = distanceToGoalGrid;
+    this._parameters = parameters;
+    this._planner = planner;
+    this._motion = motion;
+
+    this._layerTotalNumber = 2;
+    this._baseFrequency_ms = 50;
+    this._plannerFrequency_ms = 2000;
+    this._step = 0;
+    this._activeState = new State();
+
+    this._astar = null;
+    this._astarIsStarted = false;
+
+    this.updateEgo(this._ego);
+    this.updateGoal(this._goal);
+  }
+
+  setEgo(x, y, angle) {
+    this._ego = Utils.convertToMetric(this._scale, new Pose(x, y, angle));
+    Object.assign(this._lastMovedEgo, this._ego);
+    this.updateEgo(this._ego);
+  }
+
+  updateEgo(ego) {
+    this._view.updateEgo(Utils.convertToPixels(this._scale, ego));
+    this._obstacleGrid.updateEgo(ego);
+    this._distanceGrid.updateEgo(ego);
+    this._distanceToGoalGrid.updateEgo(ego);
+    this._planner.updateEgo(ego);
+  }
+
+  setGoal(x, y, angle) {
+    this._goal = Utils.convertToMetric(this._scale, new Pose(x, y, angle));
+    this.updateGoal(this._goal);
+  }
+
+  updateGoal(goal) {
+    this._view.updateGoal(Utils.convertToPixels(this._scale, goal));
+    this._planner.updateGoal(goal);
+  }
+
+  setObstacle(x, y) {
+    this._obstacleGrid.setObstacle(
+        Utils.convertToMetric(this._scale, new Pose(x, y)));
+    this._view.drawObstacle(new Pose(x, y));
+  }
+
+  toggleObstacle(x, y) {
+    this._obstacleGrid.toggleObstacle(
+        Utils.convertToMetric(this._scale, new Pose(x, y)));
+    this._view.toggleObstacle(new Pose(x, y));
+  }
+
+  reset() {
+    Object.assign(this._ego, this._lastMovedEgo);
+    this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
+
+    this._astar = null;
+    this._astarIsStarted = false;
+    this._planner.reset();
+    this._distanceGrid.reset();
+    this._distanceToGoalGrid.reset();
+    this._view.deletePath();
+    this._view.reset();
+  }
+
+  isPathPlannerFinished() {
+    if (this._astar === null) {
+      return false;
+    }
+    return this._astar.isFinished();
+  }
+
+  runPathPlanner() {
+    if (!this._astarIsStarted) {
+      this._astar = new AStar(
+          [parseInt(this._ego.x), parseInt(this._ego.y)],
+          [parseInt(this._goal.x), parseInt(this._goal.y)],
+          this._obstacleGrid.grid,
+          true, this._view);
+      this._astarIsStarted = true;
+    }
+
+    this._astar.iterate();
+
+    if (this._astar.isFinished()) {
+      const path = this._astar.getPath();
+      if (!path.length) {
+        alert('A* could not find a path to goal!');
+        return;
+      }
+      this._view.drawPath(path);
+      this._distanceGrid.calculate(path);
+      this._distanceToGoalGrid.calculate(path);
+    }
+  }
+
+  execute(timer) {
+    if (this._step++ %
+        (this._plannerFrequency_ms/ this._baseFrequency_ms) === 0) {
+      this._planner.explore(this.createInitialState(), this._layerTotalNumber);
+      this._planner.calculateFinalTrajectory(timer);
+    }
+
+    if (this._planner.lastTrajectory.length !== 0) {
+      this._activeState = this._motion.move(timer);
+      this._ego = this.getEgoFromState();
+    }
+
+    this.updateEgo(this._ego);
+    this._view.updateTimerOnScreen(timer);
+    this._view.render();
+  }
+
+  getEgoFromState() {
+    return this.transformStateToGlobal(this._planner.lastTrajectory.origin,
+        this._activeState);
+  }
+
+  transformStateToGlobal(origin, state) {
+    let newPosition = state;
+    newPosition = Utils.getStateInGlobalSystem(origin, state);
+
+    return new Pose(newPosition.x, newPosition.y, newPosition.angle);
+  }
+
+  createInitialState() {
+    const state = new State();
+    state.v = this._activeState.v;
+    state.steeringAngle = this._activeState.steeringAngle;
+    return state;
+  }
+
+  deleteMap() {
+    this._obstacleGrid.reset();
+    this._view.clearAllObstacles();
+  }
+
+  escapeKeyPressed() {
+    this._view.disableSelection();
+  }
+
+  get scale() {
+    return this._scale;
+  }
+
+  get parameters() {
+    return this._parameters;
+  }
+
+  set scale(value) {
+    this._scale = value;
+    this._view.scale = value;
+  }
+
+  set timestep(value) {
+    this._planner.timestep = value;
+  }
+
+  set intertime(value) {
+    this._planner.intertime = value;
+  }
+
+  set layerTotalNumber(value) {
+    this._layerTotalNumber = value;
+  }
+
+  set baseFrequency(value) {
+    this._baseFrequency_ms = value;
+  }
+
+  set plannerFrequency(value) {
+    this._plannerFrequency_ms = value;
+  }
+
+  set drawExploration(value) {
+    this._planner.drawExploration = value;
+  }
+
+  set velocities(value) {
+    this._planner.velocities = value;
+  }
+
+  set steeringAngles(value) {
+    this._planner.steeringAngles = value;
+  }
+}
+module.exports.Model = Model;
+
+},{"../model/astar":4,"../utils/datatypes":18,"../utils/utils":20}],9:[function(require,module,exports){
+const colorMap = require('../utils/datatypes').colorMap;
+const State = require('../utils/datatypes').State;
+
+class Motion {
+  constructor(planner, view) {
+    this._planner = planner;
+    this._view = view;
+  }
+
+  move(timer) {
+    this._view.drawEgoPoint(colorMap.get('driven'), 2);
+
+    const trajectory = this._planner.lastTrajectory;
+    const time = timer - trajectory.time;
+
+    if (trajectory.length === 0) {
+      return new State();
+    }
+
+    const states = [];
+    trajectory.segments.forEach((segment) => {
+      segment.states.forEach((state) => {
+        states.push(state);
+      });
+    });
+
+    let idx = 0;
+    for (let i=0; i<states.length; i++) {
+      if (time < states[i].t) {
+        break;
+      }
+      idx = i;
+    }
+
+    const firstState = states[idx];
+    const secondState = states[Math.min(idx+1, states.length-1)];
+
+    let fraction;
+    if (firstState === secondState) {
+      fraction = 0;
+    } else {
+      fraction = (time - firstState.t)/ (secondState.t - firstState.t);
+    }
+
+    return this.interpolate(fraction, firstState, secondState);
+  }
+
+  interpolate(fraction, stateFirst, stateSecond) {
+    const state = new State();
+    state.x = this.linearInterpolate(fraction, stateFirst.x, stateSecond.x);
+    state.y = this.linearInterpolate(fraction, stateFirst.y, stateSecond.y);
+    state.angle = this.linearInterpolate(fraction,
+        stateFirst.angle, stateSecond.angle);
+    state.steeringAngle = this.linearInterpolate(fraction,
+        stateFirst.steeringAngle, stateSecond.steeringAngle);
+    state.v = this.linearInterpolate(fraction, stateFirst.v, stateSecond.v);
+    state.t = this.linearInterpolate(fraction, stateFirst.t, stateSecond.t);
+    state.isColliding = stateSecond.isColliding;
+
+    return state;
+  }
+
+  linearInterpolate(fraction, valueFirst, valueSecond) {
+    return valueFirst + (valueSecond - valueFirst) * fraction;
+  }
+}
+module.exports.Motion = Motion;
+
+},{"../utils/datatypes":18}],10:[function(require,module,exports){
+const Utils = require('../utils/utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
+
+class ObstacleGrid {
+  constructor(numberOfRows, numberOfCols) {
+    this._numberOfRows = numberOfRows;
+    this._numberOfCols = numberOfCols;
+    this._ego = new Pose();
+
+    this._grid = [];
+    this.reset();
+  }
+
+  reset() {
+    this._grid = [];
+    for (let row = 0; row < this._numberOfRows; row++) {
+      this._grid.push([]);
+      for (let col = 0; col < this._numberOfCols; col++) {
+        this._grid[row].push(0);
+      }
+    }
+  }
+
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
+  setObstacle(pose) {
+    const X = this.getX(pose.x);
+    const Y = this.getY(pose.y);
+    this._grid[X][Y] = true;
+  }
+
+  toggleObstacle(pose) {
+    const X = this.getX(pose.x);
+    const Y = this.getY(pose.y);
+    this._grid[X][Y] = !this._grid[X][Y];
+  }
+
+  getX(x) {
+    return parseInt(x);
+  }
+
+  getY(y) {
+    return parseInt(y);
+  }
+
+  isColliding(state) {
+    let stateGlobal = Object.assign({}, state);
+
+    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
+
+    const X = this.getX(stateGlobal.x);
+    const Y = this.getY(stateGlobal.y);
+
+    if (X >= this._numberOfRows || Y >= this._numberOfCols || X < 0 || Y < 0) {
+      return true;
+    }
+
+    return this._grid[X][Y];
+  }
+
+  get grid() {
+    return this._grid;
+  }
+
+  get width() {
+    return this._numberOfRows;
+  }
+
+  get height() {
+    return this._numberOfCols;
+  }
+}
+module.exports.ObstacleGrid = ObstacleGrid;
+
+},{"../utils/datatypes":18,"../utils/utils":20}],11:[function(require,module,exports){
+const colorMap = require('../utils/datatypes').colorMap;
+const Utils = require('../utils/utils').Utils;
+const Pose = require('../utils/datatypes').Pose;
+
+class Planner {
+  constructor(view, parameters, explorer) {
+    this._view = view;
+    this._parameters = parameters;
+    this._explorer = explorer;
+    this._lastTrajectory = [];
+    this._trajectories = [];
+    this._ego = new Pose();
+    this._goalGlobal = new Pose();
+  }
+
+  get lastTrajectory() {
+    return this._lastTrajectory;
+  }
+
+  get trajectories() {
+    return this._trajectories;
+  }
+
+  set timestep(value) {
+    this._explorer.timestep = value;
+  }
+
+  set intertime(value) {
+    this._explorer.intertime = value;
+  }
+
+  set drawExploration(value) {
+    this._drawExploration = value;
+  }
+
+  set velocities(value) {
+    this._explorer.velocities = value;
+  }
+
+  set steeringAngles(value) {
+    this._explorer.steeringAngles = value;
+  }
+
+  updateEgo(ego) {
+    this._ego = ego;
+  }
+
+  updateGoal(goal) {
+    this._goalGlobal = goal;
+    this._explorer.updateGoal(Utils.transformObjectToUsk(this._ego, goal));
+  }
+
+  reset() {
+    this._lastTrajectory = [];
+    this._trajectories = [];
+  }
+
+  calculateFinalTrajectory(timer) {
+    if (this._lastTrajectory.isReachGoal) {
+      return;
+    }
+
+    this._lastTrajectory = this._explorer.getBestTrajectory(this._trajectories);
+    if (this._lastTrajectory === undefined) {
+      alert('Could not plan trajectory! Start node colliding ?');
+      this._lastTrajectory = [];
+    } else {
+      this._lastTrajectory.origin = this._ego;
+      this._lastTrajectory.time = timer;
+
+      this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
+          'dotted-line', 'ChosenTrajectory');
+    }
+  }
+
+  explore(initialState, layerTotalNumber) {
+    const startTime = new Date().getTime();
+
+    if (this._lastTrajectory.isReachGoal) {
+      return;
+    }
+
+    this._explorer.reset();
+    this._explorer.updateGoal(
+        Utils.transformObjectToUsk(this._ego, this._goalGlobal));
+    this._explorer.setInitialState(initialState);
+    for (let i=0; i<layerTotalNumber; ++i) {
+      this._explorer.iterateLayer(i);
+    }
+
+    this._view.setPreviousTrajectoriesInactive();
+    this._trajectories = this._explorer.getTrajectories();
+
+    const notcolliding = [];
+    const colliding = [];
+    for (const trajectory of this._trajectories) {
+      if (trajectory.isColliding) {
+        colliding.push(trajectory);
+      } else {
+        notcolliding.push(trajectory);
+      }
+    }
+    this._drawExploration && this._view.drawTrajectories(notcolliding,
+        colorMap.get('trajectory'), 1.5);
+    this._drawExploration && this._view.drawTrajectories(colliding,
+        colorMap.get('colliding'), 1.5);
+
+    console.log('Planner.explore() time =',
+        new Date().getTime() - startTime, 'ms');
+
+    return this._trajectories;
+  }
+}
+module.exports.Planner = Planner;
+
+},{"../utils/datatypes":18,"../utils/utils":20}],12:[function(require,module,exports){
+class StateFilter {
+  constructor(view, numberOfStatesPerLayer) {
+    this._view = view;
+    this._numberOfStatesPerLayer = numberOfStatesPerLayer;
+  }
+
+
+  getFilteredStates(segments) {
+    if (segments.length <= this._numberOfStatesPerLayer) {
+      return segments;
+    }
+
+    const extrema = this.getExtremeValues(segments);
+    const xMin = extrema[0];
+    const xMax = extrema[1];
+    const yMin = extrema[2];
+    const yMax = extrema[3];
+
+    const ratio = (xMax - xMin) / (yMax - yMin);
+
+    const Y = parseInt(Math.sqrt(this._numberOfStatesPerLayer / ratio));
+    const X = parseInt(ratio * Y);
+    const deltaX = (xMax - xMin) / X;
+    const deltaY = (yMax - yMin) / Y;
+
+    // const filter = new Filter(xMin, yMin, deltaX, deltaY, X, Y);
+    // this._view.drawFilter(filter);
+
+    const sorted = new Array(X);
+    for (let i=0; i<X; i++) {
+      const arr = [];
+      for (let j=0; j<Y; ++j) {
+        arr.push([]);
+      }
+      sorted[i] = arr;
+    }
+
+    segments.forEach((segment) => {
+      const state = segment.lastState;
+
+      const x = (state.x - xMin) / deltaX;
+      const y = (state.y - yMin) / deltaY;
+
+      sorted[Math.trunc(x)][Math.trunc(y)].push(segment);
+    });
+
+    const bestTrajectories = [];
+    for (let i=0; i<X; ++i) {
+      for (let j=0; j<Y; ++j) {
+        sorted[i][j].length &&
+        bestTrajectories.push(this.getBestTrajectory(sorted[i][j]));
+      }
+    }
+
+    return bestTrajectories;
+  }
+
+  getExtremeValues(segments) {
+    let xMin = Infinity;
+    let yMin = Infinity;
+    let xMax = -Infinity;
+    let yMax = -Infinity;
+
+    segments.forEach((segment) => {
+      const state = segment.lastState;
+
+      if (state.x < xMin) {
+        xMin = state.x - .001;
+      }
+      if (state.x > xMax) {
+        xMax = state.x + .001;
+      }
+      if (state.y < yMin) {
+        yMin = state.y - .001;
+      }
+      if (state.y > yMax) {
+        yMax = state.y + .001;
+      }
+    });
+
+    return [xMin, xMax, yMin, yMax];
+  }
+
+  getBestTrajectory(trajectories) {
+    let best = 0;
+    let cost = Infinity;
+    trajectories.forEach((trajectory, index) => {
+      if (trajectory.cost < cost) {
+        best = index;
+        cost = trajectory.cost;
+      }
+    });
+
+    return trajectories[best];
+  }
+}
+module.exports.StateFilter = StateFilter;
+
+},{}],13:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -150,9 +1686,9 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],2:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 
-},{}],3:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function (Buffer){(function (){
 /*!
  * The buffer module from node.js, for the browser.
@@ -1933,1630 +3469,7 @@ function numberIsNaN (obj) {
 }
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"base64-js":1,"buffer":3,"ieee754":4}],4:[function(require,module,exports){
-/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
-exports.read = function (buffer, offset, isLE, mLen, nBytes) {
-  var e, m
-  var eLen = (nBytes * 8) - mLen - 1
-  var eMax = (1 << eLen) - 1
-  var eBias = eMax >> 1
-  var nBits = -7
-  var i = isLE ? (nBytes - 1) : 0
-  var d = isLE ? -1 : 1
-  var s = buffer[offset + i]
-
-  i += d
-
-  e = s & ((1 << (-nBits)) - 1)
-  s >>= (-nBits)
-  nBits += eLen
-  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
-
-  m = e & ((1 << (-nBits)) - 1)
-  e >>= (-nBits)
-  nBits += mLen
-  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
-
-  if (e === 0) {
-    e = 1 - eBias
-  } else if (e === eMax) {
-    return m ? NaN : ((s ? -1 : 1) * Infinity)
-  } else {
-    m = m + Math.pow(2, mLen)
-    e = e - eBias
-  }
-  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
-}
-
-exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
-  var e, m, c
-  var eLen = (nBytes * 8) - mLen - 1
-  var eMax = (1 << eLen) - 1
-  var eBias = eMax >> 1
-  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
-  var i = isLE ? 0 : (nBytes - 1)
-  var d = isLE ? 1 : -1
-  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
-
-  value = Math.abs(value)
-
-  if (isNaN(value) || value === Infinity) {
-    m = isNaN(value) ? 1 : 0
-    e = eMax
-  } else {
-    e = Math.floor(Math.log(value) / Math.LN2)
-    if (value * (c = Math.pow(2, -e)) < 1) {
-      e--
-      c *= 2
-    }
-    if (e + eBias >= 1) {
-      value += rt / c
-    } else {
-      value += rt * Math.pow(2, 1 - eBias)
-    }
-    if (value * c >= 2) {
-      e++
-      c /= 2
-    }
-
-    if (e + eBias >= eMax) {
-      m = 0
-      e = eMax
-    } else if (e + eBias >= 1) {
-      m = ((value * c) - 1) * Math.pow(2, mLen)
-      e = e + eBias
-    } else {
-      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
-      e = 0
-    }
-  }
-
-  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
-
-  e = (e << mLen) | m
-  eLen += mLen
-  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
-
-  buffer[offset + i - d] |= s * 128
-}
-
-},{}],5:[function(require,module,exports){
-const View = require('../view/view').View;
-const Model = require('../model/model').Model;
-const Controller = require('../controller/controller').Controller;
-const ObstacleGrid = require('../model/obstaclegrid').ObstacleGrid;
-const DistanceGrid = require('../model/distancegrid').DistanceGrid;
-const DistanceToGoalGrid =
-    require('../model/distancetogoal').DistanceToGoalGrid;
-const Parameters = require('../utils/datatypes').Parameters;
-const Planner = require('../model/planner').Planner;
-const Motion = require('../model/motion').Motion;
-const Explorer = require('../model/explorer').Explorer;
-
-class Builder {
-  constructor(canvas, scale) {
-    this._canvas = canvas;
-    this._scale = scale;
-    this._width = canvas.width;
-    this._height = canvas.height;
-  }
-
-  build() {
-    // View
-    this._view = new View(this._canvas, this._scale);
-
-    // Model
-    this._obstacleGrid = new ObstacleGrid(
-        this._width/ this._scale,
-        this._height/ this._scale,
-    );
-
-    this._distanceGrid = new DistanceGrid(
-        parseInt(this._width/ this._scale),
-        parseInt(this._height/ this._scale),
-    );
-
-    this._distanceToGoalGrid = new DistanceToGoalGrid(
-        parseInt(this._width/ this._scale),
-        parseInt(this._height/ this._scale),
-        this._obstacleGrid,
-    );
-
-    this._parameters = new Parameters();
-
-    this._explorer = new Explorer(
-        this._view,
-        this._parameters,
-        this._obstacleGrid,
-        this._distanceGrid,
-        this._distanceToGoalGrid,
-    );
-
-    this._planner = new Planner(this._view,
-        this._parameters,
-        this._explorer,
-    );
-
-    this._motion = new Motion(this._planner, this._view);
-
-    this._model = new Model(this._view,
-        this._width,
-        this._height,
-        this._scale,
-        this._obstacleGrid,
-        this._distanceGrid,
-        this._distanceToGoalGrid,
-        this._parameters,
-        this._planner,
-        this._motion,
-    );
-
-    // Controller
-    this._controller = new Controller(this._model);
-  }
-
-  getModel() {
-    return this._model;
-  }
-
-  getView() {
-    return this._view;
-  }
-
-  getController() {
-    return this._controller;
-  }
-}
-module.exports.Builder = Builder;
-
-},{"../controller/controller":6,"../model/distancegrid":9,"../model/distancetogoal":10,"../model/explorer":11,"../model/model":12,"../model/motion":13,"../model/obstaclegrid":14,"../model/planner":15,"../utils/datatypes":18,"../view/view":23}],6:[function(require,module,exports){
-class Controller {
-  constructor(model) {
-    this._model = model;
-    this._intervalHandlerPath = null;
-    this._intervalHandlerTraj = null;
-    this._timer = 0;
-    this._baseFrequencyPath_ms = 10;
-    this._baseFrequencyTraj_ms = 50;
-
-
-    document.onkeydown = function(e) {
-      if (e.key === 'Escape') {
-        model.escapeKeyPressed();
-      }
-    };
-
-    this.reset();
-  }
-
-  makePath() {
-    this._intervalHandlerPath = window.setInterval(() =>
-      this.executePathPlanner(), this._baseFrequencyPath_ms);
-
-    this.setControlsInactive();
-    this.setPathButtonInactive();
-  }
-
-  executePathPlanner() {
-    if (this._model.isPathPlannerFinished()) {
-      window.clearInterval(this._intervalHandlerPath);
-      this.setControlsActive();
-      this.setPathButtonActive();
-    } else {
-      this._model.runPathPlanner();
-    }
-  }
-
-  step() {
-    this.execute();
-  }
-
-  play() {
-    this._intervalHandlerTraj = window.setInterval(() => this.execute(),
-        this._baseFrequencyTraj_ms);
-    this.setPathButtonInactive();
-  }
-
-  pause() {
-    window.clearInterval(this._intervalHandlerTraj);
-    this.setPathButtonActive();
-  }
-
-  execute() {
-    this._model.execute(this._timer);
-    this._timer += this._baseFrequencyTraj_ms/ 1000;
-  }
-
-  reset() {
-    window.clearInterval(this._intervalHandlerTraj);
-    window.clearInterval(this._intervalHandlerPath);
-    this.setPathButtonActive();
-    this._timer = 0;
-    this._model.reset();
-    this.updateLayerNumber();
-    this.updateTimestep();
-    this.updateIntertime();
-    this.updateDrawExploration();
-    this.updateVelocities();
-    this.updateSteeringAngles();
-  }
-
-  setControlsInactive() {
-    document.getElementById('controls').innerHTML = `
-      <div onclick="" class="step-button step-button-inactive"></div>
-      <div onclick="" class="play-button play-button-inactive"></div>
-      <div onclick="" class="pause-button pause-button-inactive"></div>
-      <div onclick="" class="reset-button reset-button-inactive"></div>
-    `;
-  }
-
-  setPathButtonInactive() {
-    document.getElementById('inputFieldPath').innerHTML = `
-    <button class="button button-inactive" id="makePath" onclick="">
-    Plan Path
-    </button>
-    `;
-  }
-
-  setControlsActive() {
-    document.getElementById('controls').innerHTML = `
-      <div onclick="getController().step()"
-        class="step-button step-button-active"></div>
-      <div onclick="getController().play()"
-        class="play-button play-button-active"></div>
-      <div onclick="getController().pause()"
-        class="pause-button pause-button-active"></div>
-      <div onclick="getController().reset()"
-        class="reset-button reset-button-active"></div>
-  `;
-  }
-
-  setPathButtonActive() {
-    document.getElementById('inputFieldPath').innerHTML = `
-    <button class="button" id="makePath" onclick="getController().makePath()">
-    Plan Path
-    </button>
-    `;
-  }
-
-  updateLayerNumber() {
-    this._model.layerTotalNumber =
-        parseInt(document.getElementById('layerNumber').value);
-  }
-
-  updateExplorationFrequency() {
-    this._model.plannerFrequency_ms = parseFloat(
-        document.getElementById('explorationFrequency').value) * 1000;
-  }
-
-  updateTimestep() {
-    this._model.timestep =
-        parseFloat(document.getElementById('timestep').value);
-  }
-
-  updateIntertime() {
-    this._model.intertime =
-        parseFloat(document.getElementById('intertime').value);
-  }
-
-  updateDrawExploration() {
-    this._model.drawExploration =
-        document.getElementById('drawExploration').checked;
-  }
-
-  updateVelocities() {
-    const input = document.getElementById('velocities').value;
-    const values = input.split(' ');
-
-    const velocities = [];
-    for (const value of values) {
-      velocities.push(parseFloat(value));
-    }
-
-    this._model.velocities = velocities;
-  }
-
-  updateSteeringAngles() {
-    const input = document.getElementById('steeringAngles').value;
-    const values = input.split(' ');
-
-    const steeringAngles = [];
-    for (const value of values) {
-      steeringAngles.push(parseFloat(value) * Math.PI / 180);
-    }
-
-    this._model.steeringAngles = steeringAngles;
-  }
-
-  deleteMap() {
-    this._model.deleteMap();
-  }
-
-  updateCostDriving() {
-    this._model.parameters.costDriving =
-        parseFloat(document.getElementById('costDriving').value);
-  }
-
-  updateCostDistanceToPath() {
-    this._model.parameters.costDistanceToPath =
-        parseFloat(document.getElementById('costDistanceToPath').value);
-  }
-
-  updateCostDistanceToGoal() {
-    this._model.parameters.costDistanceToGoal =
-        parseFloat(document.getElementById('costDistanceToGoal').value);
-  }
-
-  updateCostDistanceToGoalEuclidian() {
-    this._model.parameters.costDistanceToGoalEuclidian = parseFloat(
-        document.getElementById('costDistanceToGoalEuclidian').value);
-  }
-}
-module.exports.Controller = Controller;
-
-},{}],7:[function(require,module,exports){
-const Builder = require('./builder/builder').Builder;
-
-window.initialize = function() {
-  const elem = document.querySelector('.canvas');
-  const style = getComputedStyle(elem);
-  const width = parseFloat(style.width);
-  const height = parseFloat(style.height);
-  const scale = 20; // pixel per meter
-
-  canvas = new fabric.Canvas('mainView', {
-    width: width,
-    height: height,
-    renderOnAddRemove: false,
-    selection: false,
-  });
-
-  builder = new Builder(canvas, scale);
-  builder.build();
-};
-let canvas;
-let builder;
-
-// eslint-disable-next-line no-unused-vars
-window.getCanvas = function() {
-  return canvas;
-};
-
-// eslint-disable-next-line no-unused-vars
-window.getView = function() {
-  return builder.getView();
-};
-
-// eslint-disable-next-line no-unused-vars
-window.getModel = function() {
-  return builder.getModel();
-};
-
-// eslint-disable-next-line no-unused-vars
-window.getController = function() {
-  return builder.getController();
-};
-
-},{"./builder/builder":5}],8:[function(require,module,exports){
-const MinHeap = require('../utils/minheap').MinHeap;
-
-class Node {
-  constructor(row, col, value) {
-    this._id = String(row) + '-' + String(col);
-    this._row = row;
-    this._col = col;
-    this._value = value;
-    this._distanceFromStart = Number.MAX_VALUE; // g
-    this._heuristic = Number.MAX_VALUE; // h
-    this._distanceToEnd = Number.MAX_VALUE; // f=g+h
-    this._cameFrom = null;
-  }
-
-  set distanceFromStart(distance) {
-    this._distanceFromStart = distance;
-  }
-  set distanceToEnd(distance) {
-    this._distanceToEnd = distance;
-  }
-  set cameFrom(from) {
-    this._cameFrom = from;
-  }
-  set heuristic(value) {
-    this._heuristic = value;
-  }
-
-  get id() {
-    return this._id;
-  }
-  get value() {
-    return this._value;
-  }
-  get row() {
-    return this._row;
-  }
-  get col() {
-    return this._col;
-  }
-  get distanceFromStart() {
-    return this._distanceFromStart;
-  }
-  get distanceToEnd() {
-    return this._distanceToEnd;
-  }
-  get cameFrom() {
-    return this._cameFrom;
-  }
-  get heuristic() {
-    return this._heuristic;
-  }
-}
-
-class AStar {
-  constructor(start, end, grid, draw = false, view = undefined) {
-    this._draw = draw;
-    this._view = view;
-    this._start = start;
-    this._end = end;
-    this._grid = grid; // arr[arr[bool]]
-    this._startRow = start[0];
-    this._startCol = start[1];
-    this._endRow = end[0];
-    this._endCol = end[1];
-    this._drawnNodes = [];
-    this._openSet = new MinHeap();
-
-    this.init();
-  }
-
-  init() {
-    this._nodes = this._grid.map((row, rowIdx) =>
-      row.map((col, colIdx) =>
-        new Node(rowIdx, colIdx, col)),
-    );
-    this._startNode = this._nodes[this._startRow][this._startCol];
-    if (this._startNode.value) {
-      alert('A*: Start node is colliding!');
-      return;
-    }
-    this._endNode = this._nodes[this._endRow][this._endCol];
-
-    this._startNode.distanceFromStart = 0;
-    this._startNode.heuristic = this.calculateDistance(this._startRow,
-        this._startCol);
-    this._startNode.distanceToEnd = this._startNode.heuristic;
-
-    this._openSet.push(this._startNode, this._startNode.id);
-    this._closedSet = [];
-
-    this._endReached = false;
-  }
-
-  iterate() {
-    if (!this._openSet.isEmpty() && !this._endReached) {
-      const node = this.getMinNode();
-      this._openSet.pop();
-      this._closedSet.push(node);
-      this._draw && this._view.drawNodeAStarVisited(node.row, node.col);
-      this._drawnNodes.push(node);
-
-      const neighbors = this.getNeighbors(node, this._nodes);
-      neighbors.filter((i) => !this.isInArray(i, this._closedSet))
-          .filter((j) => !j.value)
-          .forEach((neighbor) => {
-            // new tentative distance
-            const newDist = node.distanceFromStart + 1 + this.calculateDistance(
-                neighbor.row, neighbor.col,
-            );
-
-            // Check if node was already visited before:
-            // If distanceToEnd is not Number.MAX_VALUE anymore, it must be in
-            // open set or closed set. Since neighbors have been filtered by
-            // closed set, it will be in open set. Remember, in case node
-            // will be updated in the following section.
-            let isInOpenSet = false;
-            if (neighbor.distanceToEnd < Number.MAX_VALUE) {
-              isInOpenSet = true;
-            }
-
-            // Update node, if the distance to end is shorter from node.
-            if (newDist < neighbor.distanceToEnd) {
-              neighbor.distanceFromStart = node.distanceFromStart + 1;
-              neighbor.heuristic = this.calculateDistance(neighbor.row,
-                  neighbor.col);
-              neighbor.distanceToEnd = neighbor.distanceFromStart +
-                  neighbor.heuristic;
-              neighbor.cameFrom = node;
-            }
-
-            // Push neighbor to open set or update heap.
-            if (!isInOpenSet) {
-              this._openSet.push(neighbor.distanceToEnd,
-                  neighbor.id, neighbor.heuristic);
-              this._draw &&
-                this._view.drawNodeAStarTentative(neighbor.row, neighbor.col);
-              this._drawnNodes.push(neighbor);
-            } else {
-              this._openSet.update(neighbor.distanceToEnd,
-                  neighbor.id, neighbor.heuristic);
-            }
-
-            // TODO: early return if end is reached.
-            if (neighbor.id === this._endNode.id) {
-              this._endReached = true;
-            }
-          });
-    }
-  }
-
-  isFinished() {
-    return this._endReached || this._openSet.isEmpty();
-  }
-
-  getPath() {
-    let path = [];
-    if (this._endReached) {
-      path = this.backtrace(this._endNode);
-    }
-    this.clearNodes();
-    return path;
-  }
-
-  clearNodes() {
-    this._draw && this._view.deleteAStarNodes();
-  }
-
-  backtrace(node) {
-    const result = [[node.row, node.col]];
-    let current = node;
-    while (current.cameFrom != null) {
-      current = current.cameFrom;
-      result.unshift([current.row, current.col]);
-    }
-    return result;
-  }
-
-  getMinNode() {
-    const id = this._openSet.peekIdentifier();
-    const row = id.split('-')[0];
-    const col = id.split('-')[1];
-
-    return this._nodes[row][col];
-  }
-
-  getNeighbors(node, nodes) {
-    const row = node.row;
-    const col = node.col;
-
-    const neighbors = [];
-    if (row > 0) {
-      neighbors.push(nodes[row - 1][col]);
-    }
-    if (row < nodes.length - 1) {
-      neighbors.push(nodes[row + 1][col]);
-    }
-    if (col > 0) {
-      neighbors.push(nodes[row][col - 1]);
-    }
-    if (col < nodes[0].length - 1) {
-      neighbors.push(nodes[row][col + 1]);
-    }
-
-    return neighbors;
-  }
-
-  calculateDistance(startRow, startCol) {
-    return Math.abs(startRow - this._endRow) +
-        Math.abs(startCol - this._endCol);
-  }
-
-  isInArray(node, nodes) {
-    for (let i = 0; i < nodes.length; i++) {
-      if (node.id === nodes[i].id) {
-        return true;
-      }
-    }
-    return false;
-  }
-}
-module.exports.AStar = AStar;
-
-},{"../utils/minheap":19}],9:[function(require,module,exports){
-const Utils = require('../utils/utils').Utils;
-const Pose = require('../utils/datatypes').Pose;
-
-class DistanceGrid {
-  constructor(numberOfRows, numberOfCols) {
-    this._numberOfRows = numberOfRows;
-    this._numberOfCols = numberOfCols;
-    this._ego = new Pose();
-
-    this._grid = [];
-    this.reset();
-  }
-
-  get grid() {
-    return this._grid;
-  }
-
-  reset() {
-    this._grid = [];
-    for (let row = 0; row < this._numberOfRows; row++) {
-      this._grid.push([]);
-      for (let col = 0; col < this._numberOfCols; col++) {
-        this._grid[row].push(0);
-      }
-    }
-  }
-
-  updateEgo(ego) {
-    this._ego = ego;
-  }
-
-  getX(x) {
-    return parseInt(x);
-  }
-
-  getY(y) {
-    return parseInt(y);
-  }
-
-  getDistance(state) {
-    let stateGlobal = Object.assign({}, state);
-
-    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
-
-    const X = this.getX(stateGlobal.x);
-    const Y = this.getY(stateGlobal.y);
-
-    if (X >= this._numberOfRows || Y >= this.numberOfCols || X < 0 || Y < 0) {
-      return Number.MAX_VALUE;
-    }
-
-    return this._grid[X][Y];
-  }
-
-  calculate(path) {
-    for (let row = 0; row < this._numberOfRows; row++) {
-      for (let col = 0; col < this._numberOfCols; col++) {
-        let minDistance = Number.MAX_VALUE;
-        path.forEach((node) => {
-          const dist = this.calculateDistance(row, col, node[0], node[1]);
-          minDistance = Math.min(minDistance, dist);
-        });
-        this._grid[row][col] = minDistance;
-      }
-    }
-  }
-
-  calculateDistance(startRow, startCol, endRow, endCol) {
-    return Math.abs(startRow - endRow) +
-        Math.abs(startCol - endCol);
-  }
-}
-module.exports.DistanceGrid = DistanceGrid;
-
-},{"../utils/datatypes":18,"../utils/utils":20}],10:[function(require,module,exports){
-const Utils = require('../utils/utils').Utils;
-const Pose = require('../utils/datatypes').Pose;
-
-class DistanceToGoalGrid {
-  constructor(numberOfRows, numberOfCols, obstacleGrid, model) {
-    this._numberOfRows = numberOfRows;
-    this._numberOfCols = numberOfCols;
-    this._obstacleGrid = obstacleGrid;
-    this._ego = new Pose();
-
-    this._grid = [];
-    this.reset();
-  }
-
-  reset() {
-    this._grid = [];
-    for (let row = 0; row < this._numberOfRows; row++) {
-      this._grid.push([]);
-      for (let col = 0; col < this._numberOfCols; col++) {
-        this._grid[row].push(0);
-      }
-    }
-  }
-
-  get grid() {
-    return this._grid;
-  }
-
-  updateEgo(ego) {
-    this._ego = ego;
-  }
-
-  getX(x) {
-    return parseInt(x);
-  }
-
-  getY(y) {
-    return parseInt(y);
-  }
-
-  getDistance(state) {
-    let stateGlobal = Object.assign({}, state);
-
-    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
-
-    const X = this.getX(stateGlobal.x);
-    const Y = this.getY(stateGlobal.y);
-
-    if (X >= this._numberOfRows || Y >= this.numberOfCols || X < 0 || Y < 0) {
-      return Number.MAX_VALUE;
-    }
-
-    return this._grid[X][Y];
-  }
-
-  calculate(path) {
-    for (let row = 0; row < this._numberOfRows; row++) {
-      for (let col = 0; col < this._numberOfCols; col++) {
-        let closest = Number.MAX_VALUE;
-        let minDistance = Number.MAX_VALUE;
-        path.forEach((node, idx) => {
-          const dist = this.calculateDistance(row, col, node[0], node[1]);
-          if (dist < minDistance) {
-            minDistance = dist;
-            closest = idx;
-          }
-        });
-        this._grid[row][col] = path.length - closest - 1;
-      }
-    }
-  }
-
-  calculateDistance(startRow, startCol, endRow, endCol) {
-    return Math.abs(startRow - endRow) +
-        Math.abs(startCol - endCol);
-  }
-}
-module.exports.DistanceToGoalGrid = DistanceToGoalGrid;
-
-},{"../utils/datatypes":18,"../utils/utils":20}],11:[function(require,module,exports){
-const Utils = require('../utils/utils').Utils;
-const StateFilter = require('./statefilter').StateFilter;
-const CarShape = require('../utils/datatypes').CarShape;
-const State = require('../utils/datatypes').State;
-const Segment = require('../utils/datatypes').Segment;
-const Trajectory = require('../utils/datatypes').Trajectory;
-const Pose = require('../utils/datatypes').Pose;
-
-class Explorer {
-  constructor(view,
-      parameters,
-      obstacleGrid,
-      distanceGrid,
-      distanceToGoalGrid,
-  ) {
-    this._parameters = parameters;
-    this._goal = new Pose();
-    this._obstacleGrid = obstacleGrid;
-    this._distanceGrid = distanceGrid;
-    this._distanceToGoalGrid = distanceToGoalGrid;
-    this._wheelBase = 2.64 / 2;
-    this._timestep = 2.;
-    this._intertime = 0.2;
-    this._steeringAngles = [-.6, -.3, .0, .3, .6];
-    this._velocities = [.0, 1.];
-    this._segments = [];
-    this._goalTolerance = 1.;
-    this._initialState = new State();
-    this._statesFilter = new StateFilter(view, 1000);
-  }
-
-  set timestep(value) {
-    this._timestep = value;
-  }
-
-  set intertime(value) {
-    this._intertime = value;
-  }
-
-  set velocities(value) {
-    this._velocities = value;
-  }
-
-  set steeringAngles(value) {
-    this._steeringAngles = value;
-  }
-
-  updateGoal(goal) {
-    this._goal = goal;
-  }
-
-  reset() {
-    this._segments = [];
-    this._initialState = new State();
-  }
-
-  setInitialState(initialState) {
-    this.initialState = initialState;
-  }
-
-  iterateLayer(layerNumber) {
-    if (layerNumber === 0) {
-      const newSegment = new Segment([this.initialState]);
-      this._segments.push([newSegment]);
-    }
-
-    this._segments.push([]);
-    for (let j=0; j<this._segments[layerNumber].length; ++j) {
-      const state = Object.assign({},
-          this._segments[layerNumber][j].lastState);
-
-      if (state.isColliding) {
-        continue;
-      }
-
-      this._steeringAngles.forEach((angle) => {
-        this._velocities.forEach((veloctity) => {
-          const newSegment = new Segment(
-              this.calculateStates(state, angle, veloctity));
-
-          newSegment.prevIdx = j;
-          if (newSegment.lastState.isColliding) {
-            newSegment.cost = Infinity;
-          } else {
-            this.addCostDriving(newSegment);
-            this.addCostDistanceToPath(newSegment);
-            this.addCostDistanceToGoal(newSegment);
-          }
-
-          this._segments[layerNumber+1].push(newSegment);
-        });
-      });
-    }
-
-    this._segments[layerNumber+1] =
-        this._statesFilter.getFilteredStates(this._segments[layerNumber+1]);
-
-    return this._segments[layerNumber+1];
-  }
-
-  getTrajectories() {
-    const trajectories = [];
-    const lastLayerIdx = this._segments.length - 1;
-    for (let i=0; i<this._segments[lastLayerIdx].length; ++i) {
-      trajectories.push(this.getTrajectoryBacktraceSegment(i));
-    }
-    this.addCostDistanceToGoalEuclidian(trajectories);
-
-    return trajectories;
-  }
-
-  getTrajectoryBacktraceSegment(index) {
-    const lastLayerIdx = this._segments.length - 1;
-    const trajectory = new Trajectory();
-    let layerIdx = lastLayerIdx;
-    let segmentIdx = index;
-    while (layerIdx >= 0) {
-      const segment = this._segments[layerIdx][segmentIdx];
-      trajectory.unshift(segment);
-      segmentIdx = segment.prevIdx;
-      layerIdx--;
-    }
-    trajectory.cost = trajectory.lastSegment.cost;
-
-    return trajectory;
-  }
-
-  addCostDriving(segment) {
-    let cost = 0;
-    segment.states.forEach((state) => {
-      cost += Math.abs(state.v);
-      cost += Math.abs(state.steeringAngle);
-    });
-    segment.cost += this._parameters.costDriving * cost;
-  }
-
-  addCostDistanceToPath(segment) {
-    let cost = 0;
-    segment.states.forEach((state) => {
-      cost += this._distanceGrid.getDistance(state);
-    });
-    segment.cost += Math.pow(this._parameters.costDistanceToPath * cost, 2);
-  }
-
-  addCostDistanceToGoal(segment) {
-    let cost = 0;
-    segment.states.forEach((state) => {
-      cost += this._distanceToGoalGrid.getDistance(state);
-    });
-    segment.cost += this._parameters.costDistanceToGoal * cost;
-  }
-
-  addCostDistanceToGoalEuclidian(trajectories) {
-    trajectories.forEach((trajectory) => {
-      const x = this._goal.x - trajectory.lastSegment.lastState.x;
-      const y = this._goal.y - trajectory.lastSegment.lastState.y;
-      const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-      trajectory.cost +=
-          this._parameters.costDistanceToGoalEuclidian * distance;
-
-      if (distance <= this._goalTolerance) {
-        trajectory.isReachGoal = true;
-      }
-    });
-  }
-
-  getBestTrajectory(trajectories) {
-    let bestCost = Infinity;
-    let bestIdx = null;
-    trajectories.forEach((trajectory, index) => {
-      if (trajectory.cost <= bestCost) {
-        bestCost = trajectory.cost;
-        bestIdx = index;
-      }
-    });
-
-    return trajectories[bestIdx];
-  }
-
-  isColliding(state) {
-    let colliding = false;
-
-    const corners = new CarShape().getCorners(state);
-    for (const corner of corners) {
-      colliding |= this._obstacleGrid.isColliding(corner);
-    }
-    return colliding;
-  }
-
-  calculateStates(initialState, steeringAngle, veloctity) {
-    const intersteps = this._timestep/ this._intertime;
-    const states = [initialState];
-    for (let i = 0; i < intersteps; i++) {
-      const angle = (i+1) / intersteps * (steeringAngle -
-          initialState.steeringAngle) + initialState.steeringAngle;
-      const vel = (i+1) / intersteps *
-          (veloctity - initialState.v) + initialState.v;
-
-      if (Math.abs(angle) < Number.EPSILON) {
-        states.push(this.calculateStraightMove(states[i], vel));
-      } else {
-        states.push(this.calculateCrookedMove(states[i], angle, vel));
-      }
-    }
-    return states;
-  }
-
-  /**
-   * Calculating the next vehicle state by assuming a single track model.
-   * Means the radius of the curve is calculated by r = wheelBase /
-   * sin(steeringAngle). The x and y coordinates are then calculated from
-   * x = r * cos(wt) and y = r * sin(wt) with w = v / r. The direction change
-   * is phi = w * t = v * t / r.
-   * @param {State} prevState Used to add up the values
-   * @param {number} steeringAngle Steering angle of tire
-   * @param {number} veloctity Current constant velocity
-   * @return {State}
-   */
-  calculateCrookedMove(prevState, steeringAngle, veloctity) {
-    const r = this._wheelBase / Math.sin(steeringAngle);
-
-    const newState = Object.assign({}, prevState);
-    newState.x = r * Math.sin(veloctity * this._intertime / r);
-    newState.y = r * Math.cos(veloctity * this._intertime / r) - r;
-
-    // TODO: The following might be merged with the formulas above.
-    const res = Utils.rotatePoint(newState.x, newState.y, prevState.angle);
-    newState.x = res[0] + prevState.x;
-    newState.y = res[1] + prevState.y;
-
-    newState.steeringAngle = steeringAngle;
-    newState.angle += -veloctity * this._intertime / r;
-    newState.v = veloctity;
-    newState.t += this._intertime;
-    newState.isColliding |= this.isColliding(newState);
-
-    // Remove initial state since it is already in previous segment
-    // states.splice(0, 1);
-
-    return newState;
-  }
-
-  calculateStraightMove(prevState, veloctity) {
-    const newState = Object.assign({}, prevState);
-    newState.x += veloctity * this._intertime * Math.cos(prevState.angle);
-    newState.y += veloctity * this._intertime * Math.sin(prevState.angle);
-
-    newState.steeringAngle = 0;
-    newState.v = veloctity;
-    newState.t += this._intertime;
-    newState.isColliding |= this.isColliding(newState);
-
-    return newState;
-  }
-}
-module.exports.Explorer = Explorer;
-
-},{"../utils/datatypes":18,"../utils/utils":20,"./statefilter":16}],12:[function(require,module,exports){
-const Pose = require('../utils/datatypes').Pose;
-const State = require('../utils/datatypes').State;
-const Utils = require('../utils/utils').Utils;
-const AStar = require('../model/astar').AStar;
-
-class Model {
-  constructor(view,
-      width,
-      height,
-      scale,
-      obstacleGrid,
-      distanceGrid,
-      distanceToGoalGrid,
-      parameters,
-      planner,
-      motion,
-  ) {
-    this._view = view;
-
-    this._scale = scale;
-    this._width = width;
-    this._height = height;
-
-    this._ego = Utils.convertToMetric(this._scale,
-        new Pose(width/ 4, height/ 8, 110));
-    this._goal = Utils.convertToMetric(this._scale,
-        new Pose(width * .75, height/ 8));
-    this._lastMovedEgo = Object.assign({}, this._ego);
-
-    this._obstacleGrid = obstacleGrid;
-    this._distanceGrid = distanceGrid;
-    this._distanceToGoalGrid = distanceToGoalGrid;
-    this._parameters = parameters;
-    this._planner = planner;
-    this._motion = motion;
-
-    this._layerTotalNumber = 2;
-    this._baseFrequency_ms = 50;
-    this._plannerFrequency_ms = 2000;
-    this._step = 0;
-    this._activeState = new State();
-
-    this._astar = null;
-    this._astarIsStarted = false;
-
-    this.updateEgo(this._ego);
-    this.updateGoal(this._goal);
-  }
-
-  setEgo(x, y, angle) {
-    this._ego = Utils.convertToMetric(this._scale, new Pose(x, y, angle));
-    Object.assign(this._lastMovedEgo, this._ego);
-    this.updateEgo(this._ego);
-  }
-
-  updateEgo(ego) {
-    this._view.updateEgo(Utils.convertToPixels(this._scale, ego));
-    this._obstacleGrid.updateEgo(ego);
-    this._distanceGrid.updateEgo(ego);
-    this._distanceToGoalGrid.updateEgo(ego);
-    this._planner.updateEgo(ego);
-  }
-
-  setGoal(x, y, angle) {
-    this._goal = Utils.convertToMetric(this._scale, new Pose(x, y, angle));
-    this.updateGoal(this._goal);
-  }
-
-  updateGoal(goal) {
-    this._view.updateGoal(Utils.convertToPixels(this._scale, goal));
-    this._planner.updateGoal(goal);
-  }
-
-  setObstacle(x, y) {
-    this._obstacleGrid.setObstacle(
-        Utils.convertToMetric(this._scale, new Pose(x, y)));
-    this._view.drawObstacle(new Pose(x, y));
-  }
-
-  toggleObstacle(x, y) {
-    this._obstacleGrid.toggleObstacle(
-        Utils.convertToMetric(this._scale, new Pose(x, y)));
-    this._view.toggleObstacle(new Pose(x, y));
-  }
-
-  reset() {
-    Object.assign(this._ego, this._lastMovedEgo);
-    this._view.updateEgo(Utils.convertToPixels(this._scale, this._ego));
-
-    this._astar = null;
-    this._astarIsStarted = false;
-    this._planner.reset();
-    this._distanceGrid.reset();
-    this._distanceToGoalGrid.reset();
-    this._view.deletePath();
-    this._view.reset();
-  }
-
-  isPathPlannerFinished() {
-    if (this._astar === null) {
-      return false;
-    }
-    return this._astar.isFinished();
-  }
-
-  runPathPlanner() {
-    if (!this._astarIsStarted) {
-      this._astar = new AStar(
-          [parseInt(this._ego.x), parseInt(this._ego.y)],
-          [parseInt(this._goal.x), parseInt(this._goal.y)],
-          this._obstacleGrid.grid,
-          true, this._view);
-      this._astarIsStarted = true;
-    }
-
-    this._astar.iterate();
-
-    if (this._astar.isFinished()) {
-      const path = this._astar.getPath();
-      if (!path.length) {
-        alert('A* could not find a path to goal!');
-        return;
-      }
-      this._view.drawPath(path);
-      this._distanceGrid.calculate(path);
-      this._distanceToGoalGrid.calculate(path);
-    }
-  }
-
-  execute(timer) {
-    if (this._step++ %
-        (this._plannerFrequency_ms/ this._baseFrequency_ms) === 0) {
-      this._planner.explore(this.createInitialState(), this._layerTotalNumber);
-      this._planner.calculateFinalTrajectory(timer);
-    }
-
-    if (this._planner.lastTrajectory.length !== 0) {
-      this._activeState = this._motion.move(timer);
-      this._ego = this.getEgoFromState();
-    }
-
-    this.updateEgo(this._ego);
-    this._view.updateTimerOnScreen(timer);
-    this._view.render();
-  }
-
-  getEgoFromState() {
-    return this.transformStateToGlobal(this._planner.lastTrajectory.origin,
-        this._activeState);
-  }
-
-  transformStateToGlobal(origin, state) {
-    let newPosition = state;
-    newPosition = Utils.getStateInGlobalSystem(origin, state);
-
-    return new Pose(newPosition.x, newPosition.y, newPosition.angle);
-  }
-
-  createInitialState() {
-    const state = new State();
-    state.v = this._activeState.v;
-    state.steeringAngle = this._activeState.steeringAngle;
-    return state;
-  }
-
-  deleteMap() {
-    this._obstacleGrid.reset();
-    this._view.clearAllObstacles();
-  }
-
-  escapeKeyPressed() {
-    this._view.disableSelection();
-  }
-
-  get scale() {
-    return this._scale;
-  }
-
-  get parameters() {
-    return this._parameters;
-  }
-
-  set scale(value) {
-    this._scale = value;
-    this._view.scale = value;
-  }
-
-  set timestep(value) {
-    this._planner.timestep = value;
-  }
-
-  set intertime(value) {
-    this._planner.intertime = value;
-  }
-
-  set layerTotalNumber(value) {
-    this._layerTotalNumber = value;
-  }
-
-  set baseFrequency(value) {
-    this._baseFrequency_ms = value;
-  }
-
-  set plannerFrequency(value) {
-    this._plannerFrequency_ms = value;
-  }
-
-  set drawExploration(value) {
-    this._planner.drawExploration = value;
-  }
-
-  set velocities(value) {
-    this._planner.velocities = value;
-  }
-
-  set steeringAngles(value) {
-    this._planner.steeringAngles = value;
-  }
-}
-module.exports.Model = Model;
-
-},{"../model/astar":8,"../utils/datatypes":18,"../utils/utils":20}],13:[function(require,module,exports){
-const colorMap = require('../utils/datatypes').colorMap;
-const State = require('../utils/datatypes').State;
-
-class Motion {
-  constructor(planner, view) {
-    this._planner = planner;
-    this._view = view;
-  }
-
-  move(timer) {
-    this._view.drawEgoPoint(colorMap.get('driven'), 2);
-
-    const trajectory = this._planner.lastTrajectory;
-    const time = timer - trajectory.time;
-
-    if (trajectory.length === 0) {
-      return new State();
-    }
-
-    const states = [];
-    trajectory.segments.forEach((segment) => {
-      segment.states.forEach((state) => {
-        states.push(state);
-      });
-    });
-
-    let idx = 0;
-    for (let i=0; i<states.length; i++) {
-      if (time < states[i].t) {
-        break;
-      }
-      idx = i;
-    }
-
-    const firstState = states[idx];
-    const secondState = states[Math.min(idx+1, states.length-1)];
-
-    let fraction;
-    if (firstState === secondState) {
-      fraction = 0;
-    } else {
-      fraction = (time - firstState.t)/ (secondState.t - firstState.t);
-    }
-
-    return this.interpolate(fraction, firstState, secondState);
-  }
-
-  interpolate(fraction, stateFirst, stateSecond) {
-    const state = new State();
-    state.x = this.linearInterpolate(fraction, stateFirst.x, stateSecond.x);
-    state.y = this.linearInterpolate(fraction, stateFirst.y, stateSecond.y);
-    state.angle = this.linearInterpolate(fraction,
-        stateFirst.angle, stateSecond.angle);
-    state.steeringAngle = this.linearInterpolate(fraction,
-        stateFirst.steeringAngle, stateSecond.steeringAngle);
-    state.v = this.linearInterpolate(fraction, stateFirst.v, stateSecond.v);
-    state.t = this.linearInterpolate(fraction, stateFirst.t, stateSecond.t);
-    state.isColliding = stateSecond.isColliding;
-
-    return state;
-  }
-
-  linearInterpolate(fraction, valueFirst, valueSecond) {
-    return valueFirst + (valueSecond - valueFirst) * fraction;
-  }
-}
-module.exports.Motion = Motion;
-
-},{"../utils/datatypes":18}],14:[function(require,module,exports){
-const Utils = require('../utils/utils').Utils;
-const Pose = require('../utils/datatypes').Pose;
-
-class ObstacleGrid {
-  constructor(numberOfRows, numberOfCols) {
-    this._numberOfRows = numberOfRows;
-    this._numberOfCols = numberOfCols;
-    this._ego = new Pose();
-
-    this._grid = [];
-    this.reset();
-  }
-
-  reset() {
-    this._grid = [];
-    for (let row = 0; row < this._numberOfRows; row++) {
-      this._grid.push([]);
-      for (let col = 0; col < this._numberOfCols; col++) {
-        this._grid[row].push(0);
-      }
-    }
-  }
-
-  updateEgo(ego) {
-    this._ego = ego;
-  }
-
-  setObstacle(pose) {
-    const X = this.getX(pose.x);
-    const Y = this.getY(pose.y);
-    this._grid[X][Y] = true;
-  }
-
-  toggleObstacle(pose) {
-    const X = this.getX(pose.x);
-    const Y = this.getY(pose.y);
-    this._grid[X][Y] = !this._grid[X][Y];
-  }
-
-  getX(x) {
-    return parseInt(x);
-  }
-
-  getY(y) {
-    return parseInt(y);
-  }
-
-  isColliding(state) {
-    let stateGlobal = Object.assign({}, state);
-
-    stateGlobal = Utils.getStateInGlobalSystem(this._ego, stateGlobal);
-
-    const X = this.getX(stateGlobal.x);
-    const Y = this.getY(stateGlobal.y);
-
-    if (X >= this._numberOfRows || Y >= this._numberOfCols || X < 0 || Y < 0) {
-      return true;
-    }
-
-    return this._grid[X][Y];
-  }
-
-  get grid() {
-    return this._grid;
-  }
-
-  get width() {
-    return this._numberOfRows;
-  }
-
-  get height() {
-    return this._numberOfCols;
-  }
-}
-module.exports.ObstacleGrid = ObstacleGrid;
-
-},{"../utils/datatypes":18,"../utils/utils":20}],15:[function(require,module,exports){
-const colorMap = require('../utils/datatypes').colorMap;
-const Utils = require('../utils/utils').Utils;
-const Pose = require('../utils/datatypes').Pose;
-
-class Planner {
-  constructor(view, parameters, explorer) {
-    this._view = view;
-    this._parameters = parameters;
-    this._explorer = explorer;
-    this._lastTrajectory = [];
-    this._trajectories = [];
-    this._ego = new Pose();
-    this._goalGlobal = new Pose();
-  }
-
-  get lastTrajectory() {
-    return this._lastTrajectory;
-  }
-
-  get trajectories() {
-    return this._trajectories;
-  }
-
-  set timestep(value) {
-    this._explorer.timestep = value;
-  }
-
-  set intertime(value) {
-    this._explorer.intertime = value;
-  }
-
-  set drawExploration(value) {
-    this._drawExploration = value;
-  }
-
-  set velocities(value) {
-    this._explorer.velocities = value;
-  }
-
-  set steeringAngles(value) {
-    this._explorer.steeringAngles = value;
-  }
-
-  updateEgo(ego) {
-    this._ego = ego;
-  }
-
-  updateGoal(goal) {
-    this._goalGlobal = goal;
-    this._explorer.updateGoal(Utils.transformObjectToUsk(this._ego, goal));
-  }
-
-  reset() {
-    this._lastTrajectory = [];
-    this._trajectories = [];
-  }
-
-  calculateFinalTrajectory(timer) {
-    if (this._lastTrajectory.isReachGoal) {
-      return;
-    }
-
-    this._lastTrajectory = this._explorer.getBestTrajectory(this._trajectories);
-    if (this._lastTrajectory === undefined) {
-      alert('Could not plan trajectory! Start node colliding ?');
-      this._lastTrajectory = [];
-    } else {
-      this._lastTrajectory.origin = this._ego;
-      this._lastTrajectory.time = timer;
-
-      this._view.drawTrajectory(this._lastTrajectory, colorMap.get('chosen'), 3,
-          'dotted-line', 'ChosenTrajectory');
-    }
-  }
-
-  explore(initialState, layerTotalNumber) {
-    const startTime = new Date().getTime();
-
-    if (this._lastTrajectory.isReachGoal) {
-      return;
-    }
-
-    this._explorer.reset();
-    this._explorer.updateGoal(
-        Utils.transformObjectToUsk(this._ego, this._goalGlobal));
-    this._explorer.setInitialState(initialState);
-    for (let i=0; i<layerTotalNumber; ++i) {
-      this._explorer.iterateLayer(i);
-    }
-
-    this._view.setPreviousTrajectoriesInactive();
-    this._trajectories = this._explorer.getTrajectories();
-
-    const notcolliding = [];
-    const colliding = [];
-    for (const trajectory of this._trajectories) {
-      if (trajectory.isColliding) {
-        colliding.push(trajectory);
-      } else {
-        notcolliding.push(trajectory);
-      }
-    }
-    this._drawExploration && this._view.drawTrajectories(notcolliding,
-        colorMap.get('trajectory'), 1.5);
-    this._drawExploration && this._view.drawTrajectories(colliding,
-        colorMap.get('colliding'), 1.5);
-
-    console.log('Planner.explore() time =',
-        new Date().getTime() - startTime, 'ms');
-
-    return this._trajectories;
-  }
-}
-module.exports.Planner = Planner;
-
-},{"../utils/datatypes":18,"../utils/utils":20}],16:[function(require,module,exports){
-class StateFilter {
-  constructor(view, numberOfStatesPerLayer) {
-    this._view = view;
-    this._numberOfStatesPerLayer = numberOfStatesPerLayer;
-  }
-
-
-  getFilteredStates(segments) {
-    if (segments.length <= this._numberOfStatesPerLayer) {
-      return segments;
-    }
-
-    const extrema = this.getExtremeValues(segments);
-    const xMin = extrema[0];
-    const xMax = extrema[1];
-    const yMin = extrema[2];
-    const yMax = extrema[3];
-
-    const ratio = (xMax - xMin) / (yMax - yMin);
-
-    const Y = parseInt(Math.sqrt(this._numberOfStatesPerLayer / ratio));
-    const X = parseInt(ratio * Y);
-    const deltaX = (xMax - xMin) / X;
-    const deltaY = (yMax - yMin) / Y;
-
-    // const filter = new Filter(xMin, yMin, deltaX, deltaY, X, Y);
-    // this._view.drawFilter(filter);
-
-    const sorted = new Array(X);
-    for (let i=0; i<X; i++) {
-      const arr = [];
-      for (let j=0; j<Y; ++j) {
-        arr.push([]);
-      }
-      sorted[i] = arr;
-    }
-
-    segments.forEach((segment) => {
-      const state = segment.lastState;
-
-      const x = (state.x - xMin) / deltaX;
-      const y = (state.y - yMin) / deltaY;
-
-      sorted[Math.trunc(x)][Math.trunc(y)].push(segment);
-    });
-
-    const bestTrajectories = [];
-    for (let i=0; i<X; ++i) {
-      for (let j=0; j<Y; ++j) {
-        sorted[i][j].length &&
-        bestTrajectories.push(this.getBestTrajectory(sorted[i][j]));
-      }
-    }
-
-    return bestTrajectories;
-  }
-
-  getExtremeValues(segments) {
-    let xMin = Infinity;
-    let yMin = Infinity;
-    let xMax = -Infinity;
-    let yMax = -Infinity;
-
-    segments.forEach((segment) => {
-      const state = segment.lastState;
-
-      if (state.x < xMin) {
-        xMin = state.x - .001;
-      }
-      if (state.x > xMax) {
-        xMax = state.x + .001;
-      }
-      if (state.y < yMin) {
-        yMin = state.y - .001;
-      }
-      if (state.y > yMax) {
-        yMax = state.y + .001;
-      }
-    });
-
-    return [xMin, xMax, yMin, yMax];
-  }
-
-  getBestTrajectory(trajectories) {
-    let best = 0;
-    let cost = Infinity;
-    trajectories.forEach((trajectory, index) => {
-      if (trajectory.cost < cost) {
-        best = index;
-        cost = trajectory.cost;
-      }
-    });
-
-    return trajectories[best];
-  }
-}
-module.exports.StateFilter = StateFilter;
-
-},{}],17:[function(require,module,exports){
+},{"base64-js":13,"buffer":15,"ieee754":17}],16:[function(require,module,exports){
 (function (Buffer){(function (){
 /* build: `node build.js modules=ALL exclude=gestures,accessors,erasing requirejs minifier=uglifyjs` */
 /*! Fabric.js Copyright 2008-2015, Printio (Juriy Zaytsev, Maxim Chernyak) */
@@ -34345,7 +34258,94 @@ fabric.util.object.extend(fabric.IText.prototype, /** @lends fabric.IText.protot
 
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"buffer":3,"jsdom":2,"jsdom/lib/jsdom/living/generated/utils":2,"jsdom/lib/jsdom/utils":2}],18:[function(require,module,exports){
+},{"buffer":15,"jsdom":14,"jsdom/lib/jsdom/living/generated/utils":14,"jsdom/lib/jsdom/utils":14}],17:[function(require,module,exports){
+/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
+exports.read = function (buffer, offset, isLE, mLen, nBytes) {
+  var e, m
+  var eLen = (nBytes * 8) - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var nBits = -7
+  var i = isLE ? (nBytes - 1) : 0
+  var d = isLE ? -1 : 1
+  var s = buffer[offset + i]
+
+  i += d
+
+  e = s & ((1 << (-nBits)) - 1)
+  s >>= (-nBits)
+  nBits += eLen
+  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+  m = e & ((1 << (-nBits)) - 1)
+  e >>= (-nBits)
+  nBits += mLen
+  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+  if (e === 0) {
+    e = 1 - eBias
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity)
+  } else {
+    m = m + Math.pow(2, mLen)
+    e = e - eBias
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+}
+
+exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c
+  var eLen = (nBytes * 8) - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
+  var i = isLE ? 0 : (nBytes - 1)
+  var d = isLE ? 1 : -1
+  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
+
+  value = Math.abs(value)
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0
+    e = eMax
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2)
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--
+      c *= 2
+    }
+    if (e + eBias >= 1) {
+      value += rt / c
+    } else {
+      value += rt * Math.pow(2, 1 - eBias)
+    }
+    if (value * c >= 2) {
+      e++
+      c /= 2
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0
+      e = eMax
+    } else if (e + eBias >= 1) {
+      m = ((value * c) - 1) * Math.pow(2, mLen)
+      e = e + eBias
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
+      e = 0
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+  e = (e << mLen) | m
+  eLen += mLen
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+  buffer[offset + i - d] |= s * 128
+}
+
+},{}],18:[function(require,module,exports){
 const Utils = require('./utils').Utils;
 
 const colorMap = new Map([
@@ -35424,4 +35424,4 @@ class View {
 }
 module.exports.View = View;
 
-},{"../utils/datatypes":18,"../utils/utils":20,"./grid":21,"./listener":22,"fabric":17}]},{},[7]);
+},{"../utils/datatypes":18,"../utils/utils":20,"./grid":21,"./listener":22,"fabric":16}]},{},[3]);

@@ -30,7 +30,7 @@ function updateTutorial() {
   switch (counterTutorial) {
     case 1:
       document.getElementById('tutorial').innerHTML = `
-      <h3>Welcome to Explorative Trajectory Planning Visualizer!</h3>
+      <h3>Welcome to Explorative Trajectory & Path Planning Visualizer!</h3>
       <h6>This short tutorial will walk you through all of the features of
       this application.</h6>
       <p>If you want to dive right in, feel free to press the "Skip Tutorial"
