@@ -9,12 +9,19 @@
   left: 0px;
   border-style: solid;
   border-width: 0px 8px 0px 8px;
-  border-color: rgb(5, 46, 107);
   transform: scale(.7);
   transition: 50ms all ease;
 }
 
-.pause-button:hover {
+.pause-button-active {
+  border-color: rgb(5, 46, 107);
+}
+
+.pause-button-inactive {
+  border-color: rgb(6, 62, 146);
+}
+
+.pause-button-active:hover {
   cursor: pointer;
   border-color: rgb(6, 62, 146);
   transform: scale(.65);
@@ -31,12 +38,19 @@
   top: 0px;
   border-style: solid;
   border-width: 13px 0px 13px 26px;
-  border-color: transparent transparent transparent rgb(5, 46, 107);
   transform: scale(.65);
   transition: 50ms all ease;
 }
 
-.play-button:hover {
+.play-button-active {
+  border-color: transparent transparent transparent rgb(5, 46, 107);
+}
+
+.play-button-inactive {
+  border-color: transparent transparent transparent rgb(6, 62, 146);
+}
+
+.play-button-active:hover {
   cursor: pointer;
   border-color: transparent transparent transparent rgb(6, 62, 146);
   transform: scale(.6);
@@ -51,9 +65,16 @@
   position: relative;
   left: 0px;
   top: 0px;
-  background: rgb(5, 46, 107);
   transform: scale(.65);
   transition: 50ms all ease;
+}
+
+.step-button-active {
+  background: rgb(5, 46, 107);
+}
+
+.step-button-inactive {
+  background: rgb(6, 62, 146); 
 }
 
 .step-button::before {
@@ -65,16 +86,23 @@
   height: 26px;
   border-style: solid;
   border-width: 13px 0px 13px 26px;
+}
+
+.step-button-active::before {
   border-color: transparent transparent transparent rgb(5, 46, 107);
 }
 
-.step-button:hover {
+.step-button-inactive::before {
+  border-color: transparent transparent transparent rgb(6, 62, 146);
+}
+
+.step-button-active:hover {
   cursor: pointer;
   background: rgb(6, 62, 146);
   transform: scale(.6);
 }
 
-.step-button:hover::before {
+.step-button-active:hover::before {
   border-color: transparent transparent transparent rgb(6, 62, 146);
 }
 
@@ -87,12 +115,19 @@
   position: relative;
   left: 0px;
   top: 0px;
-  background: rgb(5, 46, 107);
   transform: scale(.7);
   transition: 50ms all ease;
 }
 
-.reset-button:hover {
+.reset-button-active {
+  background: rgb(5, 46, 107);
+}
+
+.reset-button-inactive {
+  background: rgb(6, 62, 146);
+}
+
+.reset-button-active:hover {
   cursor: pointer;
   background: rgb(6, 62, 146);
   transform: scale(.65);

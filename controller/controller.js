@@ -6,7 +6,6 @@ class Controller {
     this._timer = 0;
     this._baseFrequencyPath_ms = 10;
     this._baseFrequencyTraj_ms = 50;
-    this._isActive = false;
 
 
     document.onkeydown = function(e) {
@@ -19,39 +18,36 @@ class Controller {
   }
 
   makePath() {
-    if (!this._isActive) {
-      this._intervalHandlerPath = window.setInterval(() =>
-        this.executePathPlanner(), this._baseFrequencyPath_ms);
-      this.setActive();
-    }
+    this._intervalHandlerPath = window.setInterval(() =>
+      this.executePathPlanner(), this._baseFrequencyPath_ms);
+
+    this.setControlsInactive();
+    this.setPathButtonInactive();
   }
 
   executePathPlanner() {
     if (this._model.isPathPlannerFinished()) {
       window.clearInterval(this._intervalHandlerPath);
-      this.setInactive();
+      this.setControlsActive();
+      this.setPathButtonActive();
     } else {
       this._model.runPathPlanner();
     }
   }
 
   step() {
-    !this._isActive && this.execute();
+    this.execute();
   }
 
   play() {
-    if (!this._isActive) {
-      this._intervalHandlerTraj = window.setInterval(() => this.execute(),
-          this._baseFrequencyTraj_ms);
-      this.setActive();
-    }
+    this._intervalHandlerTraj = window.setInterval(() => this.execute(),
+        this._baseFrequencyTraj_ms);
+    this.setPathButtonInactive();
   }
 
   pause() {
-    if (this._isActive) {
-      window.clearInterval(this._intervalHandlerTraj);
-      this.setInactive();
-    }
+    window.clearInterval(this._intervalHandlerTraj);
+    this.setPathButtonActive();
   }
 
   execute() {
@@ -62,7 +58,7 @@ class Controller {
   reset() {
     window.clearInterval(this._intervalHandlerTraj);
     window.clearInterval(this._intervalHandlerPath);
-    this.setInactive();
+    this.setPathButtonActive();
     this._timer = 0;
     this._model.reset();
     this.updateLayerNumber();
@@ -73,12 +69,42 @@ class Controller {
     this.updateSteeringAngles();
   }
 
-  setActive() {
-    this._isActive = true;
+  setControlsInactive() {
+    document.getElementById('controls').innerHTML = `
+      <div onclick="" class="step-button step-button-inactive"></div>
+      <div onclick="" class="play-button play-button-inactive"></div>
+      <div onclick="" class="pause-button pause-button-inactive"></div>
+      <div onclick="" class="reset-button reset-button-inactive"></div>
+    `;
   }
 
-  setInactive() {
-    this._isActive = false;
+  setPathButtonInactive() {
+    document.getElementById('inputFieldPath').innerHTML = `
+    <button class="button button-inactive" id="makePath" onclick="">
+    Plan Path
+    </button>
+    `;
+  }
+
+  setControlsActive() {
+    document.getElementById('controls').innerHTML = `
+      <div onclick="getController().step()"
+        class="step-button step-button-active"></div>
+      <div onclick="getController().play()"
+        class="play-button play-button-active"></div>
+      <div onclick="getController().pause()"
+        class="pause-button pause-button-active"></div>
+      <div onclick="getController().reset()"
+        class="reset-button reset-button-active"></div>
+  `;
+  }
+
+  setPathButtonActive() {
+    document.getElementById('inputFieldPath').innerHTML = `
+    <button class="button" id="makePath" onclick="getController().makePath()">
+    Plan Path
+    </button>
+    `;
   }
 
   updateLayerNumber() {

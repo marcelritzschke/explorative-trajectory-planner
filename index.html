@@ -17,18 +17,18 @@
 
     </header>
     <section class="control-section">
-        <div class="control">
-            <div onclick="getController().step()" class="step-button"></div>
-            <div onclick="getController().play()" class="play-button"></div>
-            <div onclick="getController().pause()" class="pause-button"></div>
-            <div onclick="getController().reset()" class="reset-button"></div>
+        <div id="controls" class="control">
+            <div onclick="getController().step()" class="step-button step-button-active"></div>
+            <div onclick="getController().play()" class="play-button play-button-active"></div>
+            <div onclick="getController().pause()" class="pause-button pause-button-active"></div>
+            <div onclick="getController().reset()" class="reset-button reset-button-active"></div>
         </div>
         <div id="timer" class="timer">00:00:000</div>
     </section>
     
     <section class="content">
         <div class="controlPanel">
-            <div class="inputField">
+            <div id="inputFieldPath" class="inputField">
                 <button class="button" id="makePath" onclick="getController().makePath()">
                     Plan Path
                 </button>
@@ -100,7 +100,7 @@
             </div>
             <div class="inputField">
                 <button class="button" id="deleteMap" onclick="getController().deleteMap()">
-                    Delete Map
+                    Delete Obstacles
                 </button>
             </div> 
         </div>

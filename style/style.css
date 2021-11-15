@@ -83,6 +83,11 @@ header {
     /* transition-duration: 0.2s; */
     cursor: pointer;
 }
+.button-inactive {
+    opacity: 0.8;
+    border: 1px solid black;
+    cursor: auto;
+}
 .button:hover {
     opacity: 0.8;
     border: 1px solid black;
