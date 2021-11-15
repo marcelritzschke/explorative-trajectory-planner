@@ -20,7 +20,7 @@ class Builder {
 
   build() {
     // View
-    this._view = new View(this._canvas);
+    this._view = new View(this._canvas, this._scale);
 
     // Model
     this._obstacleGrid = new ObstacleGrid(

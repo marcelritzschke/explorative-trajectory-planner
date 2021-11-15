@@ -8,12 +8,12 @@ const Grid = require('./grid').Grid;
 const Listener = require('./listener').Listener;
 
 class View {
-  constructor(canvas) {
+  constructor(canvas, scale) {
     this._canvas = canvas;
     this._width = canvas.width;
     this._height = canvas.height;
     this._idCounter = 0;
-    this._scale = 20;
+    this._scale = scale;
     this._shapes = new Map();
     this._fixedShapes = new Set(['Grid', 'Goal', 'Ego']);
     this._ego = null;
