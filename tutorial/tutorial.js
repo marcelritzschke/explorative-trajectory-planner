@@ -55,7 +55,7 @@ function updateTutorial() {
       gives it the possibility to adapt to moving obstacles!</h6>
       <p></p>
       <div id="tutorialCounter">2/12</div>
-      <img id="mainTutorialImage" src="../assets/trajectory.jpg">
+      <img id="mainTutorialImage" src="assets/images/trajectory.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -73,7 +73,7 @@ function updateTutorial() {
       with fixed length. Each segment itsself is a trajectory.</h6>
       <p></p>
       <div id="tutorialCounter">3/12</div>
-      <img id="mainTutorialImage" src="../assets/exploration-sketch.jpg">
+      <img id="mainTutorialImage" src="assets/images/exploration-sketch.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -92,7 +92,7 @@ function updateTutorial() {
       position!</h6>
       <p></p>
       <div id="tutorialCounter">4/12</div>
-      <img id="mainTutorialImage" src="../assets/ego-goal.jpg">
+      <img id="mainTutorialImage" src="assets/images/ego-goal.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -109,7 +109,7 @@ function updateTutorial() {
       button and move the mouse to place many obstacles at once.</h6>
       <p></p>
       <div id="tutorialCounter">5/12</div>
-      <img id="mainTutorialImage" src="../assets/obstacles.jpg">
+      <img id="mainTutorialImage" src="assets/images/obstacles.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -129,7 +129,7 @@ function updateTutorial() {
       you can do, to help your car nonetheless to reach the goal!</h6>
       <p></p>
       <div id="tutorialCounter">6/12</div>
-      <img id="mainTutorialImage" src="../assets/controls.jpg">
+      <img id="mainTutorialImage" src="assets/images/controls.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -147,7 +147,7 @@ function updateTutorial() {
       path.</h6>
       <p></p>
       <div id="tutorialCounter">7/12</div>
-      <img id="mainTutorialImage" src="../assets/path-planner.jpg">
+      <img id="mainTutorialImage" src="assets/images/path-planner.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -162,7 +162,7 @@ function updateTutorial() {
       raising the number of layers. But be aware, the processing time
       will increase in a linear fashion.</h6>
       <div id="tutorialCounter">8/12</div>
-      <img id="mainTutorialImage" src="../assets/adjust-layer-number.jpg">
+      <img id="mainTutorialImage" src="assets/images/adjust-layer-number.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -177,7 +177,7 @@ function updateTutorial() {
       each segment. This will give you more range by constant time complexity.
       However, the car will be much less able to maneuver around obstacles.</h6>
       <div id="tutorialCounter">9/12</div>
-      <img id="mainTutorialImage" src="../assets/adjust-layer-length.jpg">
+      <img id="mainTutorialImage" src="assets/images/adjust-layer-length.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -195,7 +195,7 @@ function updateTutorial() {
       interpolation interval is to big, obstacles might not be detected and
       ghosting can occur!</h6>
       <div id="tutorialCounter">10/12</div>
-      <img id="mainTutorialImage" src="../assets/adjust-interpolation.jpg">
+      <img id="mainTutorialImage" src="assets/images/adjust-interpolation.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -217,7 +217,7 @@ function updateTutorial() {
       increase the number of trajectories by only less increase in processing
       time!</h6>
       <div id="tutorialCounter">11/12</div>
-      <img id="mainTutorialImage" src="../assets/sampling.jpg">
+      <img id="mainTutorialImage" src="assets/images/sampling.jpg">
       <button id="nextButton" class="button" type="button">Next</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
@@ -233,7 +233,7 @@ function updateTutorial() {
       designed as visualization and object of learning.<br><br>
       Have fun playing around and be careful with the parametrization!</h6>
       <div id="tutorialCounter">12/12</div>
-      <img id="mainTutorialImage" src="../assets/traj-planner.jpg">
+      <img id="mainTutorialImage" src="assets/images/traj-planner.jpg">
       <button id="finishButton" class="button" type="button">Finish</button>
       <button id="previousButton" class="button" type="button">Previous
       </button>
