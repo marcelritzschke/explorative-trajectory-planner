@@ -1,6 +1,6 @@
-# explorative trajectory & path planning visualizer
+# path & trajectory planning visualizer
 
-At its core, an explorative trajectory planner tries to find a time-dependent path (hence trajectory) to get from a starting position to a goal position.
+At its core, a trajectory planner tries to find a time-dependent path (hence trajectory) to get from a starting position to a goal position.
 
 It has a short planning horizon and therfore needs to dynamically replan its trajectory, until it finally reaches its goal. This gives it the possibility to adapt to moving obstacles!
 
