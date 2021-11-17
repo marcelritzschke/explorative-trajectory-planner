@@ -39,10 +39,6 @@ function getScale(width, height) {
   return scale;
 }
 
-window.addEventListener('resize', function(event) {
-  window.initialize();
-});
-
 // eslint-disable-next-line no-unused-vars
 window.getCanvas = function() {
   return canvas;
