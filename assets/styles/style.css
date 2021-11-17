@@ -149,16 +149,13 @@ header {
     top: 2%;
 }
 #mainTutorialImage {
-    width: 25%;
-    padding-top: 5px;
-}
-#secondTutorialImage {
+    width: 50%;
     padding-top: 5px;
 }
 #tutorial > h3,
 #tutorial > h6,
 #tutorial > p {
-    font-family: 'Helvetica';
+    font-family: 'Arial';
     color: rgb(5, 46, 107);
 }
 #tutorial > h3 {
