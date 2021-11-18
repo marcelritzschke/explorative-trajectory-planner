@@ -80,6 +80,8 @@ class Grid {
     for (let i = 0; i < (this._width / gridSize); i++) {
       lines.push(new fabric.Line([i * gridSize, 0, i * gridSize, this._height],
           {type: 'line', stroke: colorMap.get('grid'), opacity: 0.25}));
+    }
+    for (let i = 0; i < (this._height / gridSize); i++) {
       lines.push(new fabric.Line([0, i * gridSize, this._width, i * gridSize],
           {type: 'line', stroke: colorMap.get('grid'), opacity: 0.25}));
     }
